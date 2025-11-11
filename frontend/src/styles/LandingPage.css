@@ -1,0 +1,88 @@
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.landing-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  width: 100%;
+  gap: 60px;
+}
+
+.landing-content {
+  flex: 1;
+  color: white;
+}
+
+.brand-name {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  line-height: 1.2;
+}
+
+.description-section {
+  margin: 30px 0;
+}
+
+.description-text {
+  font-size: 18px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.action-buttons {
+  margin-top: 40px;
+}
+
+.action-buttons .btn-primary {
+  background-color: white;
+  color: #667eea;
+  padding: 16px 40px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.action-buttons .btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.landing-visual {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.visual-circle {
+  width: 400px;
+  height: 400px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+  .landing-container {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .brand-name {
+    font-size: 36px;
+  }
+
+  .visual-circle {
+    width: 250px;
+    height: 250px;
+  }
+}
