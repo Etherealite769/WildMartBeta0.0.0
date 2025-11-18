@@ -1,6 +1,7 @@
 .my-products-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #FFF9E6; /* Light gold background */
+  padding-bottom: 40px;
 }
 
 .my-products-container {
@@ -18,7 +19,21 @@
 
 .page-header h2 {
   font-size: 32px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+}
+
+.page-header h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: #FFBF00; /* Gold */
+  border-radius: 2px;
 }
 
 .filter-tabs {
@@ -28,26 +43,40 @@
 }
 
 .filter-btn {
-  padding: 10px 20px;
-  border: 2px solid #ecf0f1;
+  padding: 10px 24px;
+  border: 2px solid #FFE6A7; /* Light gold border */
   background-color: white;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   cursor: pointer;
   transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(128, 0, 0, 0.1);
 }
 
 .filter-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: #FFBF00; /* Gold */
+  color: #800000; /* Maroon */
+  background-color: #FFF9E6; /* Light gold */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(128, 0, 0, 0.15);
 }
 
 .filter-btn.active {
-  background-color: #667eea;
+  background-color: #800000; /* Maroon */
   color: white;
-  border-color: #667eea;
+  border-color: #800000; /* Maroon */
+  box-shadow: 0 2px 8px rgba(128, 0, 0, 0.2);
+}
+
+.filter-btn.active:hover {
+  background-color: #660000; /* Darker maroon */
+  border-color: #660000; /* Darker maroon */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.25);
 }
 
 .products-list {
@@ -63,13 +92,32 @@
   display: flex;
   gap: 20px;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+  box-shadow: 0 2px 12px rgba(128, 0, 0, 0.08);
+  border: 1px solid #FFE6A7; /* Light gold border */
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #800000, #FFBF00);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .product-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(128, 0, 0, 0.12);
+}
+
+.product-item:hover::before {
+  opacity: 1;
 }
 
 .product-image {
@@ -93,20 +141,50 @@
 
 .product-details h3 {
   font-size: 20px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   margin-bottom: 8px;
+  transition: color 0.3s ease;
+}
+
+.product-details h3:hover {
+  color: #FFBF00; /* Gold on hover */
 }
 
 .product-price {
   font-size: 18px;
   font-weight: 700;
-  color: #27ae60;
+  color: #800000; /* Maroon */
   margin-bottom: 4px;
+  position: relative;
+  padding-left: 18px;
+}
+
+.product-price::before {
+  content: '₱';
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .product-status {
   font-size: 14px;
   color: #7f8c8d;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.product-status.available {
+  background-color: #E6FFE6; /* Light green */
+  color: #008000; /* Dark green */
+  border: 1px solid #99FF99;
+}
+
+.product-status.out-of-stock {
+  background-color: #FFE6E6; /* Light red */
+  color: #CC0000; /* Dark red */
+  border: 1px solid #FF9999;
 }
 
 .product-actions {
@@ -115,49 +193,157 @@
 }
 
 .btn-edit {
-  padding: 8px 16px;
-  background-color: #3498db;
-  color: white;
+  padding: 10px 20px;
+  background-color: #FFBF00; /* Gold */
+  color: #000000;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.3s ease;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(255, 191, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-edit::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+  z-index: -1;
 }
 
 .btn-edit:hover {
-  background-color: #2980b9;
+  background-color: #FFD700; /* Brighter gold */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 191, 0, 0.35);
+}
+
+.btn-edit:hover::before {
+  left: 100%;
+}
+
+.btn-edit:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(255, 191, 0, 0.25);
 }
 
 .btn-delete {
-  padding: 8px 16px;
-  background-color: #e74c3c;
+  padding: 10px 20px;
+  background-color: #800000; /* Maroon */
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.3s ease;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(128, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.btn-delete::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+  z-index: -1;
 }
 
 .btn-delete:hover {
-  background-color: #c0392b;
+  background-color: #660000; /* Darker maroon */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+}
+
+.btn-delete:hover::before {
+  left: 100%;
+}
+
+.btn-delete:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(128, 0, 0, 0.2);
 }
 
 @media (max-width: 768px) {
+  .my-products-container {
+    padding: 20px 15px;
+  }
+  
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
+    margin-bottom: 20px;
   }
-
+  
+  .page-header h2 {
+    font-size: 28px;
+  }
+  
+  .page-header h2::after {
+    width: 40px;
+    height: 3px;
+  }
+  
+  .filter-tabs {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  
+  .filter-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  
   .product-item {
     flex-direction: column;
     text-align: center;
+    padding: 15px;
   }
-
+  
+  .product-image {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 15px;
+  }
+  
+  .product-details h3 {
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+  
+  .product-price {
+    font-size: 16px;
+  }
+  
   .product-actions {
     width: 100%;
     justify-content: center;
+    margin-top: 15px;
+  }
+  
+  .btn-edit,
+  .btn-delete {
+    padding: 8px 16px;
+    font-size: 13px;
   }
 }

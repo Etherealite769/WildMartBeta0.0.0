@@ -40,11 +40,14 @@ public class AuthService {
             throw new RuntimeException("Username already exists");
         }
         
-        // Create new user
+        // Create new user with all provided information
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setFullName(request.getFirstName() + " " + request.getLastName());
+        user.setPhoneNumber(request.getPhone());
+        user.setShippingAddress(request.getAddress());
         
         user = userRepository.save(user);
         

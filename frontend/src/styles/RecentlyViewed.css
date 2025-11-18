@@ -1,6 +1,7 @@
 .recently-viewed-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #FFF9E6; /* Light gold background */
+  padding-bottom: 40px;
 }
 
 .recently-viewed-container {
@@ -11,18 +12,104 @@
 
 .recently-viewed-container h2 {
   font-size: 32px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   margin-bottom: 30px;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+}
+
+.recently-viewed-container h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: #FFBF00; /* Gold */
+  border-radius: 2px;
 }
 
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 25px;
+  position: relative;
+}
+
+/* Styling for the ProductCard component used in the grid */
+.products-grid .product-card {
+  transition: all 0.3s ease;
+  border: 1px solid #FFE6A7; /* Light gold border */
+  box-shadow: 0 2px 12px rgba(128, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.products-grid .product-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #800000, #FFBF00);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.products-grid .product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(128, 0, 0, 0.12);
+}
+
+.products-grid .product-card:hover::before {
+  opacity: 1;
+}
+
+/* Style for the 'Recently Viewed' badge */
+.products-grid .product-card .recent-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: linear-gradient(135deg, #800000 0%, #FFBF00 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 @media (max-width: 768px) {
+  .recently-viewed-container {
+    padding: 20px 15px;
+  }
+  
+  .recently-viewed-container h2 {
+    font-size: 28px;
+    margin-bottom: 25px;
+  }
+  
+  .recently-viewed-container h2::after {
+    width: 50px;
+    height: 3px;
+  }
+  
   .products-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  
+  .products-grid .product-card {
+    margin-bottom: 10px;
+  }
+  
+  .products-grid .product-card .recent-badge {
+    top: 10px;
+    right: 10px;
+    font-size: 10px;
+    padding: 3px 8px;
   }
 }

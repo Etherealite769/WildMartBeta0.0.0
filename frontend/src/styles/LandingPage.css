@@ -3,8 +3,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800000 0%, #660000 100%);
   padding: 20px;
+  color: #FFFFFF;
 }
 
 .landing-container {
@@ -18,7 +19,8 @@
 
 .landing-content {
   flex: 1;
-  color: white;
+  color: #FFFFFF;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .brand-name {
@@ -43,16 +45,24 @@
 }
 
 .action-buttons .btn-primary {
-  background-color: white;
-  color: #667eea;
+  background-color: #FFBF00;
+  color: #000000;
   padding: 16px 40px;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
+  border: none;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .action-buttons .btn-primary:hover {
+  background-color: #FFFFFF;
+  color: #800000;
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 25px rgba(255, 191, 0, 0.4);
 }
 
 .landing-visual {
@@ -68,7 +78,25 @@
   background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 191, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.visual-circle::before {
+  content: '';
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 191, 0, 0.2);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-30%, -30%);
+  filter: blur(30px);
 }
 
 @media (max-width: 768px) {

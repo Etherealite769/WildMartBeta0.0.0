@@ -1,6 +1,7 @@
 .account-info-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #FFF9E6; /* Light gold background */
+  padding-bottom: 40px;
 }
 
 .account-info-container {
@@ -11,15 +12,30 @@
 
 .account-info-container h2 {
   font-size: 32px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   margin-bottom: 30px;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+}
+
+.account-info-container h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: #FFBF00; /* Gold */
+  border-radius: 2px;
 }
 
 .account-form {
   background: white;
   border-radius: 12px;
   padding: 40px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(128, 0, 0, 0.08);
+  border: 1px solid #FFE6A7; /* Light gold border */
 }
 
 .form-section {
@@ -28,10 +44,24 @@
 
 .form-section h3 {
   font-size: 24px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   margin-bottom: 20px;
   padding-bottom: 10px;
-  border-bottom: 2px solid #ecf0f1;
+  border-bottom: 2px solid #FFE6A7; /* Light gold border */
+  position: relative;
+  padding-left: 15px;
+}
+
+.form-section h3::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 24px;
+  background: #FFBF00; /* Gold */
+  border-radius: 3px;
 }
 
 .form-row {
@@ -41,15 +71,34 @@
 }
 
 @media (max-width: 768px) {
+  .account-info-container h2 {
+    font-size: 28px;
+  }
+  
+  .account-info-container h2::after {
+    width: 40px;
+    height: 3px;
+  }
+  
   .account-form {
-    padding: 20px;
+    padding: 25px 20px;
+  }
+
+  .form-section h3 {
+    font-size: 20px;
   }
 
   .form-row {
     grid-template-columns: 1fr;
+    gap: 15px;
   }
 
   .form-actions {
     flex-direction: column;
+    gap: 15px;
+  }
+  
+  .form-section {
+    margin-bottom: 30px;
   }
 }

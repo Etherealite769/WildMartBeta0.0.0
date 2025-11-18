@@ -1,6 +1,7 @@
 .my-purchases-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #FFF9E6; /* Light gold background */
+  padding-bottom: 40px;
 }
 
 .my-purchases-container {
@@ -11,8 +12,22 @@
 
 .my-purchases-container h2 {
   font-size: 32px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   margin-bottom: 30px;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+}
+
+.my-purchases-container h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: #FFBF00; /* Gold */
+  border-radius: 2px;
 }
 
 .purchases-list {
@@ -28,7 +43,32 @@
   display: flex;
   gap: 20px;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(128, 0, 0, 0.08);
+  border: 1px solid #FFE6A7; /* Light gold border */
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.purchase-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #800000, #FFBF00);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.purchase-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(128, 0, 0, 0.12);
+}
+
+.purchase-item:hover::before {
+  opacity: 1;
 }
 
 .purchase-image {
@@ -52,8 +92,14 @@
 
 .purchase-details h3 {
   font-size: 20px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   margin-bottom: 8px;
+  transition: color 0.3s ease;
+}
+
+.purchase-details h3:hover {
+  color: #FFBF00; /* Gold on hover */
+  cursor: pointer;
 }
 
 .purchase-date {
@@ -65,19 +111,88 @@
 .purchase-price {
   font-size: 18px;
   font-weight: 700;
-  color: #27ae60;
+  color: #800000; /* Maroon */
   margin-bottom: 4px;
+  position: relative;
+  padding-left: 18px;
+}
+
+.purchase-price::before {
+  content: '₱';
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .purchase-status {
+  display: inline-block;
   font-size: 14px;
-  color: #3498db;
   font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin-top: 6px;
+}
+
+.purchase-status.completed {
+  background-color: #E6FFE6; /* Light green */
+  color: #008000; /* Dark green */
+  border: 1px solid #99FF99;
+}
+
+.purchase-status.pending {
+  background-color: #FFF3E6; /* Light orange */
+  color: #994D00; /* Dark orange */
+  border: 1px solid #FFD699;
+}
+
+.purchase-status.cancelled {
+  background-color: #FFE6E6; /* Light red */
+  color: #CC0000; /* Dark red */
+  border: 1px solid #FF9999;
+}
+
+.purchase-status.shipped {
+  background-color: #E6F3FF; /* Light blue */
+  color: #0066CC; /* Dark blue */
+  border: 1px solid #99CCFF;
 }
 
 @media (max-width: 768px) {
+  .my-purchases-container h2 {
+    font-size: 28px;
+  }
+  
+  .my-purchases-container h2::after {
+    width: 40px;
+    height: 3px;
+  }
+  
   .purchase-item {
     flex-direction: column;
     text-align: center;
+    padding: 15px;
+  }
+  
+  .purchase-image {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 15px;
+  }
+  
+  .purchase-details h3 {
+    font-size: 18px;
+  }
+  
+  .purchase-price {
+    font-size: 16px;
+  }
+  
+  .purchase-status {
+    display: inline-block;
+    margin-top: 8px;
+  }
+  
+  .purchase-details {
+    width: 100%;
   }
 }

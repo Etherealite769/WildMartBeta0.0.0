@@ -1,6 +1,7 @@
 .edit-profile-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #FFF9E6; /* Light gold background */
+  padding-bottom: 40px;
 }
 
 .edit-profile-container {
@@ -11,15 +12,30 @@
 
 .edit-profile-container h2 {
   font-size: 32px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   margin-bottom: 30px;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+}
+
+.edit-profile-container h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: #FFBF00; /* Gold */
+  border-radius: 2px;
 }
 
 .edit-profile-form {
   background: white;
   border-radius: 12px;
   padding: 40px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(128, 0, 0, 0.08);
+  border: 1px solid #FFE6A7; /* Light gold border */
 }
 
 .profile-image-section {
@@ -52,24 +68,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #800000 0%, #FFBF00 100%);
   color: white;
   font-size: 48px;
   cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.placeholder-circle:hover {
+  transform: scale(1.05);
 }
 
 .upload-btn {
   display: inline-block;
-  padding: 10px 20px;
-  background-color: #667eea;
+  padding: 10px 24px;
+  background-color: #800000; /* Maroon */
   color: white;
   border-radius: 8px;
+  border: none;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(128, 0, 0, 0.2);
 }
 
 .upload-btn:hover {
-  background-color: #5568d3;
+  background-color: #660000; /* Darker maroon */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+}
+
+.upload-btn:active {
+  transform: translateY(0);
 }
 
 .form-section {
@@ -88,23 +120,26 @@
 .form-group label {
   font-size: 14px;
   font-weight: 600;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
+  margin-left: 5px;
 }
 
 .form-group input,
 .form-group textarea {
   padding: 12px 16px;
-  border: 2px solid #ecf0f1;
+  border: 2px solid #FFE6A7; /* Light gold border */
   border-radius: 8px;
   font-size: 16px;
   font-family: inherit;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
+  background-color: #fff;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #FFBF00; /* Gold */
+  box-shadow: 0 0 0 3px rgba(255, 191, 0, 0.2);
 }
 
 .form-actions {
@@ -114,11 +149,39 @@
 }
 
 @media (max-width: 768px) {
-  .edit-profile-form {
-    padding: 20px;
+  .edit-profile-container h2 {
+    font-size: 28px;
   }
-
+  
+  .edit-profile-container h2::after {
+    width: 40px;
+    height: 3px;
+  }
+  
+  .edit-profile-form {
+    padding: 25px 20px;
+  }
+  
+  .profile-image-section {
+    margin-bottom: 30px;
+  }
+  
+  .image-preview {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .form-group label {
+    font-size: 13px;
+  }
+  
   .form-actions {
     flex-direction: column;
+    gap: 15px;
+  }
+  
+  .upload-btn {
+    padding: 10px 20px;
+    font-size: 14px;
   }
 }
