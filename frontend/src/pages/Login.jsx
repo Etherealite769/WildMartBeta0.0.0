@@ -40,7 +40,7 @@ const Login = ({ setAuth }) => {
         </div>
 
         <div className="auth-form-section">
-          <h2 className="auth-title">Login (Quitayen)</h2>
+          <h2 className="auth-title">Login</h2>
           
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">

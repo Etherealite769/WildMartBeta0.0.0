@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
@@ -19,7 +20,38 @@ import AccountInformation from './pages/AccountInformation';
 import './App.css';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check for existing token on app load
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        try {
+          // Verify the token with the backend
+          await axios.get('http://localhost:8080/api/auth/verify', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('Session expired or invalid token');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsAuthenticated(false);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return <div className="loading">Loading...</div>;
+  }
 
   return (
     <Router>

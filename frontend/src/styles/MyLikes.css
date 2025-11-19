@@ -1,6 +1,7 @@
 .my-likes-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #FFF9E6; /* Light gold background */
+  padding-bottom: 40px;
 }
 
 .my-likes-container {
@@ -11,14 +12,29 @@
 
 .my-likes-container h2 {
   font-size: 32px;
-  color: #2c3e50;
+  color: #800000; /* Maroon */
   margin-bottom: 30px;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+}
+
+.my-likes-container h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: #FFBF00; /* Gold */
+  border-radius: 2px;
 }
 
 .liked-products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 25px;
+  gap: 30px;
+  padding: 10px 0;
 }
 
 .liked-product-card {
@@ -28,23 +44,51 @@
 .btn-unlike {
   width: 100%;
   margin-top: 10px;
-  padding: 10px;
-  background-color: #e74c3c;
+  padding: 12px;
+  background-color: #800000; /* Maroon */
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: background-color 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(128, 0, 0, 0.2);
 }
 
 .btn-unlike:hover {
-  background-color: #c0392b;
+  background-color: #660000; /* Darker maroon */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+}
+
+.btn-unlike:active {
+  transform: translateY(0);
 }
 
 @media (max-width: 768px) {
+  .my-likes-container h2 {
+    font-size: 28px;
+  }
+  
+  .my-likes-container h2::after {
+    width: 40px;
+    height: 3px;
+  }
+  
   .liked-products-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  
+  .btn-unlike {
+    padding: 10px;
+    font-size: 13px;
+  }
+  
+  .liked-product-card {
+    margin-bottom: 20px;
   }
 }
