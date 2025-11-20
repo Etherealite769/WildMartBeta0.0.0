@@ -26,8 +26,16 @@
 .brand-name {
   font-size: 48px;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   line-height: 1.2;
+}
+
+.university-subtitle {
+  font-size: 24px;
+  font-weight: 400;
+  margin-bottom: 20px;
+  color: #FFBF00;
+  opacity: 0.9;
 }
 
 .description-section {
@@ -104,7 +112,6 @@
     flex-direction: column;
     text-align: center;
   }
-
   .brand-name {
     font-size: 36px;
   }

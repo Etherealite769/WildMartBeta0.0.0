@@ -6,6 +6,7 @@ import '../styles/Auth.css';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -110,6 +111,9 @@ const Signup = () => {
     }
   };
 
+  const nextStep = () => setStep(prev => prev + 1);
+  const prevStep = () => setStep(prev => prev - 1);
+
   return (
     <div className="auth-page">
       <div className="auth-container">
@@ -122,171 +126,188 @@ const Signup = () => {
 
         <div className="auth-form-section">
           <h2 className="auth-title">Create Account</h2>
-          <p className="auth-subtitle">Fill in your details to get started</p>
+          <p className="auth-subtitle">
+            Step {step} of 2: {step === 1 ? 'Personal Information' : 'Account Security'}
+          </p>
           
           <form onSubmit={handleSubmit} className="auth-form">
-            <div className="form-group">
-              <label htmlFor="firstName">First Name</label>
-              <div className="input-with-icon">
-                <FaUser className="input-icon" />
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="John"
-                  required
-                  autoFocus
-                />
-              </div>
-            </div>
+            {step === 1 && (
+              <>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="firstName">First Name</label>
+                    <div className="input-with-icon">
+                      <FaUser className="input-icon" />
+                      <input
+                        type="text"
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        placeholder="John"
+                        required
+                        autoFocus
+                      />
+                    </div>
+                  </div>
 
-            <div className="form-group">
-              <label htmlFor="lastName">Last Name</label>
-              <div className="input-with-icon">
-                <FaUser className="input-icon" />
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Doe"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <div className="input-with-icon">
-                <FaIdCard className="input-icon" />
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="Choose a username"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="email">Email Address</label>
-              <div className="input-with-icon">
-                <FaEnvelope className="input-icon" />
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="phone">Philippine Phone Number</label>
-              <div className="input-with-icon">
-                <FaPhone className="input-icon" />
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+63 9## ### ####"
-                  pattern="^(\+63|0)9\d{9}$"
-                  title="Please enter a valid Philippine mobile number (e.g., +63 912 345 6789 or 09123456789)"
-                  required
-                />
-              </div>
-              <small className="phone-format-hint">Format: +63 9## ### #### or 09########</small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="address">Address</label>
-              <div className="input-with-icon">
-                <FaMapMarkerAlt className="input-icon" />
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Your full address"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-section-divider">
-              <span>Account Security</span>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <div className="input-with-icon">
-                <FaLock className="input-icon" />
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create a strong password"
-                  required
-                />
-              </div>
-              {formData.password && (
-                <div className="password-strength">
-                  <div 
-                    className={`strength-bar strength-${Math.min(4, Math.max(1, passwordStrength.score))}`}
-                  ></div>
-                  <div className={`strength-feedback ${passwordStrength.score >= 3 ? 'strong' : 'weak'}`}>
-                    {passwordStrength.feedback}
+                  <div className="form-group">
+                    <label htmlFor="lastName">Last Name</label>
+                    <div className="input-with-icon">
+                      <FaUser className="input-icon" />
+                      <input
+                        type="text"
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        placeholder="Doe"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+                <div className="form-group">
+                  <label htmlFor="username">Username</label>
+                  <div className="input-with-icon">
+                    <FaIdCard className="input-icon" />
+                    <input
+                      type="text"
+                      id="username"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleChange}
+                      placeholder="Choose a username"
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
-              <div className="input-with-icon">
-                <FaLock className="input-icon" />
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm your password"
-                  required
-                />
-              </div>
-            </div>
+                <div className="form-group">
+                  <label htmlFor="email">Email Address</label>
+                  <div className="input-with-icon">
+                    <FaEnvelope className="input-icon" />
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="your@email.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="phone">Philippine Phone Number</label>
+                  <div className="input-with-icon">
+                    <FaPhone className="input-icon" />
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="+63 9## ### ####"
+                      pattern="^(\+63|0)9\d{9}$"
+                      title="Please enter a valid Philippine mobile number (e.g., +63 912 345 6789 or 09123456789)"
+                      required
+                    />
+                  </div>
+                  <small className="phone-format-hint">Format: +63 9## ### #### or 09########</small>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="address">Address</label>
+                  <div className="input-with-icon">
+                    <FaMapMarkerAlt className="input-icon" />
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      placeholder="Your full address"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="password">Password</label>
+                  <div className="input-with-icon">
+                    <FaLock className="input-icon" />
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Create a strong password"
+                      required
+                    />
+                  </div>
+                  {formData.password && (
+                    <div className="password-strength">
+                      <div
+                        className={`strength-bar strength-${Math.min(4, Math.max(1, passwordStrength.score))}`}
+                      ></div>
+                      <div className={`strength-feedback ${passwordStrength.score >= 3 ? 'strong' : 'weak'}`}>
+                        {passwordStrength.feedback}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirm Password</label>
+                  <div className="input-with-icon">
+                    <FaLock className="input-icon" />
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm your password"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             {error && <div className="error-message">{error}</div>}
 
-            <button 
-              type="submit" 
-              className="btn-submit"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Creating Account...' : 'Create Account'}
-            </button>
+            <div className="form-navigation">
+              {step > 1 && (
+                <button type="button" className="btn-secondary" onClick={prevStep}>
+                  Back
+                </button>
+              )}
+              {step < 2 ? (
+                <button type="button" className="btn-primary" onClick={nextStep}>
+                  Next
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="btn-submit"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                </button>
+              )}
+            </div>
 
             <div className="auth-footer">
               <p>
                 Already have an account? <Link to="/login">Sign in</Link>
-              </p>
-              <p className="terms">
-                By signing up, you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>
               </p>
             </div>
           </form>

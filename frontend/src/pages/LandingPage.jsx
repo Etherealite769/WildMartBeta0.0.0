@@ -10,13 +10,14 @@ const LandingPage = () => {
       <div className="landing-container">
         <div className="landing-content">
           <div className="logo-section">
-            <h1 className="brand-name">Welcome to "WildMart"</h1>
+            <h1 className="brand-name">WildMart</h1>
+            <p className="university-subtitle">Your Exclusive University Marketplace</p>
           </div>
           
           <div className="description-section">
             <p className="description-text">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod 
-              tempor incididunt ut labore et dolore magna aliqua.
+              Discover a wide range of products from fellow students. 
+              Buy and sell textbooks, electronics, and more right here on campus.
             </p>
           </div>
 
@@ -25,7 +26,7 @@ const LandingPage = () => {
               className="btn-primary"
               onClick={() => navigate('/login')}
             >
-              Get Started
+              Shop Now
             </button>
           </div>
         </div>

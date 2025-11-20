@@ -177,6 +177,40 @@
   text-decoration: underline;
 }
 
+.form-navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.btn-primary, .btn-secondary, .btn-submit {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #800000;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #660000;
+}
+
+.btn-secondary {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background-color: #e0e0e0;
+}
+
 .btn-submit {
   background-color: #800000;
   color: white;
@@ -191,6 +225,7 @@
   letter-spacing: 0.5px;
   position: relative;
   overflow: hidden;
+  width: 100%;
 }
 
 .btn-submit::after {
@@ -293,7 +328,6 @@
 
 .form-row {
   display: flex;
-  flex-direction: column;
   gap: 15px;
   width: 100%;
 }
