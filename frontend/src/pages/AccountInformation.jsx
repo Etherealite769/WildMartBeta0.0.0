@@ -7,7 +7,7 @@ import profilePlaceholder from '../assets/placeholder.png';
 
 const AccountInformation = () => {
   const [profileName, setProfileName] = useState('NAME');
-  const [profileDescription, setProfileDescription] = useState('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore'); // Placeholder for description
+  const [profileDescription, setProfileDescription] = useState('About the User!'); 
   const [activeTab, setActiveTab] = useState('accountInformation');
 
   const navigate = useNavigate();
