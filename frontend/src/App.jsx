@@ -5,7 +5,6 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import SellerPage from './pages/SellerPage';
 import MyProducts from './pages/MyProducts';
@@ -63,10 +62,6 @@ function App() {
           <Route 
             path="/dashboard" 
             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/profile" 
-            element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/edit-profile" 

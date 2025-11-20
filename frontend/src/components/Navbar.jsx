@@ -39,7 +39,6 @@ const Navbar = () => {
             </button>
             {isMenuOpen && (
               <div className="dropdown-menu">
-                <Link to="/profile" className="dropdown-item">Profile</Link>
                 <Link to="/account" className="dropdown-item">Account Settings</Link>
                 <Link to="/recently-viewed" className="dropdown-item">Recently Viewed</Link>
                 <button onClick={handleLogout} className="dropdown-item logout">
