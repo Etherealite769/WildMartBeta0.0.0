@@ -16,6 +16,7 @@ import SuccessfulBuy from './pages/SuccessfulBuy';
 import ProductDetails from './pages/ProductDetails';
 import RecentlyViewed from './pages/RecentlyViewed';
 import AccountInformation from './pages/AccountInformation';
+import AddProduct from './pages/AddProduct';
 import './App.css';
 
 function App() {
@@ -106,6 +107,10 @@ function App() {
           <Route 
             path="/account" 
             element={isAuthenticated ? <AccountInformation /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/add-product" 
+            element={isAuthenticated ? <AddProduct /> : <Navigate to="/login" />} 
           />
         </Routes>
       </div>
