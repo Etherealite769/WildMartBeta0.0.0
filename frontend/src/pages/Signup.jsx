@@ -18,83 +18,156 @@ const Signup = () => {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState({
-    score: 0,
-    feedback: ''
-  });
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    return gmailRegex.test(email);
+  };
+
+  const validatePhone = (phone) => {
+    const phoneRegex = /^09\d{9}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const validatePassword = (password) => {
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    return passwordRegex.test(password);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    let processedValue = value;
+    
+    // Phone number restriction: max 11 digits and only numbers
+    if (name === 'phone') {
+      // Remove any non-digit characters
+      processedValue = value.replace(/\D/g, '');
+      // Limit to 11 characters
+      if (processedValue.length > 11) {
+        processedValue = processedValue.slice(0, 11);
+      }
+      // Ensure it starts with 09
+      if (processedValue.length >= 2 && !processedValue.startsWith('09')) {
+        processedValue = '09' + processedValue.slice(2);
+      }
+    }
+    
+    // Real-time validation for specific fields
+    let fieldError = null;
+    
+    if (name === 'email' && processedValue && !validateEmail(processedValue)) {
+      fieldError = 'Email must be a valid @gmail.com account.';
+    } else if (name === 'phone' && processedValue && !validatePhone(processedValue)) {
+      if (processedValue.length < 11) {
+        fieldError = 'Phone number must be exactly 11 digits.';
+      } else {
+        fieldError = 'Phone number must start with 09.';
+      }
+    } else if (name === 'password' && processedValue && !validatePassword(processedValue)) {
+      fieldError = 'Password must be alphanumeric and at least 8 characters long.';
+    } else if (name === 'confirmPassword' && processedValue && formData.password !== processedValue) {
+      fieldError = 'Passwords do not match.';
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
 
-    // Check password strength when password changes
-    if (name === 'password') {
-      checkPasswordStrength(value);
-    }
+    setErrors(prev => ({
+      ...prev,
+      [name]: fieldError
+    }));
   };
 
-  const checkPasswordStrength = (password) => {
-    let score = 0;
-    let feedback = [];
+  const validateStep1 = () => {
+    const newErrors = {};
+
+    // Required field validation
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required.';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required.';
+    if (!formData.username.trim()) newErrors.username = 'Username is required.';
+    if (!formData.address.trim()) newErrors.address = 'Address is required.';
     
-    // Check length
-    if (password.length >= 8) score++;
-    else feedback.push('At least 8 characters');
-    
-    // Check for numbers
-    if (/\d/.test(password)) score++;
-    else feedback.push('Include numbers');
-    
-    // Check for letters
-    if (/[a-zA-Z]/.test(password)) score++;
-    else feedback.push('Include letters');
-    
-    // Check for special characters
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-    else feedback.push('Include special characters');
-    
-    // Check for both uppercase and lowercase
-    if (/(?=.*[a-z])(?=.*[A-Z])/.test(password)) score++;
-    else feedback.push('Include both uppercase and lowercase letters');
-    
-    setPasswordStrength({
-      score,
-      feedback: feedback.length > 0 ? `Password should contain: ${feedback.join(', ')}` : 'Strong password!'
-    });
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required.';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Email must be a valid @gmail.com account.';
+    }
+
+    // Phone validation
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required.';
+    } else if (!validatePhone(formData.phone)) {
+      if (formData.phone.length < 11) {
+        newErrors.phone = 'Phone number must be exactly 11 digits.';
+      } else {
+        newErrors.phone = 'Phone number must be 11 digits and start with 09.';
+      }
+    }
+
+    return newErrors;
   };
 
-  const validateForm = () => {
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
+  const validateStep2 = () => {
+    const newErrors = {};
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required.';
+    } else if (!validatePassword(formData.password)) {
+      newErrors.password = 'Password must be alphanumeric and at least 8 characters long.';
     }
-    if (passwordStrength.score < 3) {
-      setError('Please choose a stronger password');
-      return false;
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password.';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match.';
     }
-    return true;
+
+    return newErrors;
+  };
+
+  const handleNext = () => {
+    const step1Errors = validateStep1();
+    setErrors(step1Errors);
+
+    if (Object.keys(step1Errors).length === 0) {
+      nextStep();
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const step2Errors = validateStep2();
+    const step1Errors = validateStep1(); // Re-validate step 1 in case data was modified
     
-    if (!validateForm()) return;
+    const allErrors = { ...step1Errors, ...step2Errors };
+    setErrors(allErrors);
+
+    if (Object.keys(allErrors).length > 0) {
+      setError('Please fix the validation errors before submitting.');
+      return;
+    }
     
     setIsLoading(true);
 
     try {
       await axios.post('http://localhost:8080/api/auth/register', {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        username: formData.username,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        address: formData.address.trim(),
         password: formData.password
       });
       
@@ -149,6 +222,7 @@ const Signup = () => {
                         autoFocus
                       />
                     </div>
+                    {errors.firstName && <small className="error-text">{errors.firstName}</small>}
                   </div>
 
                   <div className="form-group">
@@ -165,6 +239,7 @@ const Signup = () => {
                         required
                       />
                     </div>
+                    {errors.lastName && <small className="error-text">{errors.lastName}</small>}
                   </div>
                 </div>
                 <div className="form-group">
@@ -181,6 +256,7 @@ const Signup = () => {
                       required
                     />
                   </div>
+                  {errors.username && <small className="error-text">{errors.username}</small>}
                 </div>
 
                 <div className="form-group">
@@ -193,10 +269,11 @@ const Signup = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      placeholder="your@email.com"
+                      placeholder="your@gmail.com"
                       required
                     />
                   </div>
+                  {errors.email && <small className="error-text">{errors.email}</small>}
                 </div>
 
                 <div className="form-group">
@@ -209,13 +286,13 @@ const Signup = () => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="+63 9## ### ####"
-                      pattern="^(\+63|0)9\d{9}$"
-                      title="Please enter a valid Philippine mobile number (e.g., +63 912 345 6789 or 09123456789)"
+                      placeholder="09123456789"
+                      maxLength="11"
+                      title="Please enter a valid 11-digit Philippine mobile number starting with 09"
                       required
                     />
                   </div>
-                  <small className="phone-format-hint">Format: +63 9## ### #### or 09########</small>
+                  {errors.phone && <small className="error-text">{errors.phone}</small>}
                 </div>
 
                 <div className="form-group">
@@ -232,6 +309,7 @@ const Signup = () => {
                       required
                     />
                   </div>
+                  {errors.address && <small className="error-text">{errors.address}</small>}
                 </div>
               </>
             )}
@@ -252,16 +330,8 @@ const Signup = () => {
                       required
                     />
                   </div>
-                  {formData.password && (
-                    <div className="password-strength">
-                      <div
-                        className={`strength-bar strength-${Math.min(4, Math.max(1, passwordStrength.score))}`}
-                      ></div>
-                      <div className={`strength-feedback ${passwordStrength.score >= 3 ? 'strong' : 'weak'}`}>
-                        {passwordStrength.feedback}
-                      </div>
-                    </div>
-                  )}
+                  {errors.password && <small className="error-text">{errors.password}</small>}
+                  <small className="hint-text">Must be alphanumeric and at least 8 characters long</small>
                 </div>
 
                 <div className="form-group">
@@ -278,6 +348,7 @@ const Signup = () => {
                       required
                     />
                   </div>
+                  {errors.confirmPassword && <small className="error-text">{errors.confirmPassword}</small>}
                 </div>
               </>
             )}
@@ -291,7 +362,7 @@ const Signup = () => {
                 </button>
               )}
               {step < 2 ? (
-                <button type="button" className="btn-primary" onClick={nextStep}>
+                <button type="button" className="btn-primary" onClick={handleNext}>
                   Next
                 </button>
               ) : (

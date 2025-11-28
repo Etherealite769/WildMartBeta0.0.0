@@ -158,11 +158,6 @@
   font-weight: 500;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin: 10px 0;
-}
 
 .forgot-password {
   color: #800000;
@@ -181,6 +176,7 @@
   display: flex;
   justify-content: space-between;
   margin-top: 20px;
+  align-items: center;
 }
 
 .btn-primary, .btn-secondary, .btn-submit {
