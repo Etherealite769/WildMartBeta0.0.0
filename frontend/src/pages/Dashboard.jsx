@@ -10,7 +10,7 @@ const Dashboard = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categories, setCategories] = useState(['All', 'Electronics', 'Clothing', 'Books', 'Home']);
+  const [categories, setCategories] = useState(['All', 'Electronics', 'Clothing', 'Books', 'Home', 'Accesories', 'Sports']);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [activeFilter, setActiveFilter] = useState('Popular');
 
