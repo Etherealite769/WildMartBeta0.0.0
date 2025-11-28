@@ -41,7 +41,6 @@ const Dashboard = () => {
   const filterProducts = (term, productCategory, filterCategory) => {
     let filtered = products;
     
-    // Apply filter category logic based on your backend data
     if (filterCategory === 'Hot Deals') {
       filtered = filtered.filter(p => p.discount > 0);
     } else if (filterCategory === 'Popular') {
