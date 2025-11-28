@@ -12,7 +12,7 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categories, setCategories] = useState(['All', 'Electronics', 'Clothing', 'Books', 'Home', 'Accesories', 'Sports']);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [activeQuickFilter, setActiveQuickFilter] = useState('Hot Deals');
+  const [activeFilter, setActiveFilter] = useState('Popular');
 
   useEffect(() => {
     fetchProducts();
@@ -63,41 +63,38 @@ const Dashboard = () => {
       <Navbar />
       
       <div className="dashboard-container">
-        <h1 className="dashboard-title">DASHBOARD</h1>
-        <div className="toolbar">
-          <div className="toolbar-top">
+        <div className="dashboard-header">
+          <h1>DASHBOARD</h1>
+          <div className="search-and-category">
             <div className="search-bar">
+              <i className="fas fa-search"></i>
               <input
                 type="text"
-                placeholder="Search here"
+                placeholder="SEARCH HERE"
                 value={searchTerm}
                 onChange={handleSearch}
               />
             </div>
-            <div className="category-filter">
-              <select
-                value={selectedCategory}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-              >
+            <div className="category-dropdown">
+              <select onChange={(e) => handleCategoryChange(e.target.value)} value={selectedCategory}>
                 {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
+                  <option key={category} value={category}>{category}</option>
                 ))}
               </select>
             </div>
           </div>
-          <div className="quick-filters">
-            {['Popular', "What's New", 'Hot Deals', 'Picks For You', 'Most Purchased'].map(filter => (
-              <button
-                key={filter}
-                className={`quick-filter-btn ${activeQuickFilter === filter ? 'active' : ''}`}
-                onClick={() => setActiveQuickFilter(filter)}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
+        </div>
+
+        <div className="filter-buttons">
+          {['Popular', 'What\'s New', 'Hot Deals', 'Picks For You', 'Most Purchased'].map(filter => (
+            <button
+              key={filter}
+              className={`filter-btn ${activeFilter === filter ? 'active' : ''}`}
+              onClick={() => setActiveFilter(filter)}
+            >
+              {filter}
+            </button>
+          ))}
         </div>
 
         <div className="products-grid">

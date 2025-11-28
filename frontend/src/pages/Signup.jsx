@@ -40,22 +40,42 @@ const Signup = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
+    let processedValue = value;
+    
+    // Phone number restriction: max 11 digits and only numbers
+    if (name === 'phone') {
+      // Remove any non-digit characters
+      processedValue = value.replace(/\D/g, '');
+      // Limit to 11 characters
+      if (processedValue.length > 11) {
+        processedValue = processedValue.slice(0, 11);
+      }
+      // Ensure it starts with 09
+      if (processedValue.length >= 2 && !processedValue.startsWith('09')) {
+        processedValue = '09' + processedValue.slice(2);
+      }
+    }
+    
     // Real-time validation for specific fields
     let fieldError = null;
     
-    if (name === 'email' && value && !validateEmail(value)) {
+    if (name === 'email' && processedValue && !validateEmail(processedValue)) {
       fieldError = 'Email must be a valid @gmail.com account.';
-    } else if (name === 'phone' && value && !validatePhone(value)) {
-      fieldError = 'Phone number must be 11 digits and start with 09.';
-    } else if (name === 'password' && value && !validatePassword(value)) {
+    } else if (name === 'phone' && processedValue && !validatePhone(processedValue)) {
+      if (processedValue.length < 11) {
+        fieldError = 'Phone number must be exactly 11 digits.';
+      } else {
+        fieldError = 'Phone number must start with 09.';
+      }
+    } else if (name === 'password' && processedValue && !validatePassword(processedValue)) {
       fieldError = 'Password must be alphanumeric and at least 8 characters long.';
-    } else if (name === 'confirmPassword' && value && formData.password !== value) {
+    } else if (name === 'confirmPassword' && processedValue && formData.password !== processedValue) {
       fieldError = 'Passwords do not match.';
     }
 
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
 
     setErrors(prev => ({
@@ -84,7 +104,11 @@ const Signup = () => {
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required.';
     } else if (!validatePhone(formData.phone)) {
-      newErrors.phone = 'Phone number must be 11 digits and start with 09.';
+      if (formData.phone.length < 11) {
+        newErrors.phone = 'Phone number must be exactly 11 digits.';
+      } else {
+        newErrors.phone = 'Phone number must be 11 digits and start with 09.';
+      }
     }
 
     return newErrors;
@@ -250,7 +274,6 @@ const Signup = () => {
                     />
                   </div>
                   {errors.email && <small className="error-text">{errors.email}</small>}
-                  <small className="hint-text">Must be a valid @gmail.com account</small>
                 </div>
 
                 <div className="form-group">
@@ -264,13 +287,12 @@ const Signup = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="09123456789"
-                      pattern="^09\d{9}$"
+                      maxLength="11"
                       title="Please enter a valid 11-digit Philippine mobile number starting with 09"
                       required
                     />
                   </div>
                   {errors.phone && <small className="error-text">{errors.phone}</small>}
-                  <small className="hint-text">Must be 11 digits starting with 09</small>
                 </div>
 
                 <div className="form-group">
