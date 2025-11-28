@@ -86,7 +86,7 @@ const Dashboard = () => {
         </div>
 
         <div className="filter-buttons">
-          {['Popular', 'What\'s New', 'Hot Deals', 'Picks For You', 'Most Purchased'].map(filter => (
+          {['Popular', 'What\'s New', 'Hot Deals', 'Exclusive Deals', 'Picks For You', 'Most Purchased',].map(filter => (
             <button
               key={filter}
               className={`filter-btn ${activeFilter === filter ? 'active' : ''}`}
