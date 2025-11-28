@@ -12,6 +12,7 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categories, setCategories] = useState(['All', 'Electronics', 'Clothing', 'Books', 'Home']);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('Popular');
 
   useEffect(() => {
     fetchProducts();
@@ -63,25 +64,35 @@ const Dashboard = () => {
       
       <div className="dashboard-container">
         <div className="dashboard-header">
-          <h1>Dashboard</h1>
-          <div className="search-bar">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={handleSearch}
-            />
+          <h1>DASHBOARD</h1>
+          <div className="search-and-category">
+            <div className="search-bar">
+              <i className="fas fa-search"></i>
+              <input
+                type="text"
+                placeholder="SEARCH HERE"
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+            </div>
+            <div className="category-dropdown">
+              <select onChange={(e) => handleCategoryChange(e.target.value)} value={selectedCategory}>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="category-filters">
-          {categories.map(category => (
+        <div className="filter-buttons">
+          {['Popular', 'What\'s New', 'Hot Deals', 'Picks For You', 'Most Purchased'].map(filter => (
             <button
-              key={category}
-              className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
-              onClick={() => handleCategoryChange(category)}
+              key={filter}
+              className={`filter-btn ${activeFilter === filter ? 'active' : ''}`}
+              onClick={() => setActiveFilter(filter)}
             >
-              {category}
+              {filter}
             </button>
           ))}
         </div>

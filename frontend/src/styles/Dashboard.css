@@ -1,6 +1,6 @@
 .dashboard {
   min-height: 100vh;
-  background-color: #FFF9E6; /* Light gold background */
+  background-color: #FFFFFF;
   padding-bottom: 40px;
 }
 
@@ -16,82 +16,77 @@
 
 .dashboard-header h1 {
   font-size: 36px;
-  color: #800000; /* Maroon */
+  color: #B93855; /* Adjusted to match wireframe */
   margin-bottom: 20px;
-  position: relative;
-  display: inline-block;
-  padding-bottom: 10px;
+  font-weight: bold;
 }
 
-.dashboard-header h1::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 60px;
-  height: 4px;
-  background: #FFBF00; /* Gold */
-  border-radius: 2px;
+.search-and-category {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 .search-bar {
-  max-width: 600px;
+  display: flex;
+  align-items: center;
+  background-color: #F0F0F0;
+  border-radius: 25px;
+  padding: 5px 15px;
+  flex-grow: 1;
+}
+
+.search-bar i {
+  color: #888;
+  margin-right: 10px;
 }
 
 .search-bar input {
   width: 100%;
-  padding: 14px 20px;
-  border: 2px solid #FFE6A7; /* Light gold border */
-  border-radius: 10px;
+  padding: 10px;
+  border: none;
+  border-radius: 25px;
   font-size: 16px;
-  transition: all 0.3s ease;
-  background-color: white;
-  box-shadow: 0 2px 8px rgba(128, 0, 0, 0.05);
+  background-color: #F0F0F0;
 }
 
 .search-bar input:focus {
   outline: none;
-  border-color: #FFBF00; /* Gold */
-  box-shadow: 0 0 0 3px rgba(255, 191, 0, 0.2);
 }
 
-.category-filters {
+.category-dropdown select {
+  padding: 10px 15px;
+  border-radius: 5px;
+  border: 1px solid #CCC;
+  font-size: 16px;
+}
+
+.filter-buttons {
   display: flex;
   gap: 15px;
   margin-bottom: 30px;
   flex-wrap: wrap;
 }
 
-.category-btn {
+.filter-btn {
   padding: 10px 24px;
-  border: 2px solid #FFE6A7; /* Light gold border */
-  background-color: white;
+  background-color: #E0E0E0;
+  border: none;
   border-radius: 25px;
   font-size: 14px;
   font-weight: 600;
-  color: #800000; /* Maroon */
+  color: #333;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.category-btn:hover {
-  border-color: #FFBF00; /* Gold */
-  color: #800000;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(255, 191, 0, 0.2);
+.filter-btn:hover {
+  background-color: #D0D0D0;
 }
 
-.category-btn.active {
-  background-color: #800000; /* Maroon */
+.filter-btn.active {
+  background-color: #B93855;
   color: white;
-  border-color: #800000;
-  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.2);
-}
-
-.category-btn.active:hover {
-  background-color: #660000;
-  border-color: #660000;
 }
 
 .products-grid {
