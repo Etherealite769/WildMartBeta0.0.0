@@ -129,14 +129,25 @@ const Cart = () => {
           </>
         ) : (
           <div className="empty-cart">
-            <div className="empty-cart-icon">🛒</div>
-            <p>Your cart is empty</p>
+            <div className="empty-cart-icon"></div>
+            <p className="empty-cart-text">Your cart is empty</p>
             <button 
-              className="btn-primary"
+              className="btn-shopping-now"
               onClick={() => navigate('/dashboard')}
             >
-              Continue Shopping
+              Go Shopping Now
             </button>
+          </div>
+        )}
+
+        {cartItems.length === 0 && (
+          <div className="recommendations">
+            <h3>You may also like</h3>
+            <div className="recommendation-items">
+              <div className="recommendation-item-placeholder"></div>
+              <div className="recommendation-item-placeholder"></div>
+              <div className="recommendation-item-placeholder"></div>
+            </div>
           </div>
         )}
       </div>
