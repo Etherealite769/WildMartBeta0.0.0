@@ -17,6 +17,7 @@ public class Category {
     private String categoryName;
 
     @Lob
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     private String icon;

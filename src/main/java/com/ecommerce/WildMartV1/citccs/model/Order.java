@@ -39,10 +39,11 @@ public class Order {
     private String paymentStatus;
 
     @Lob
-    @Column(name = "shipping_address")
+    @Column(name = "shipping_address", columnDefinition = "TEXT")
     private String shippingAddress;
 
     @Lob
+    @Column(columnDefinition = "TEXT")
     private String notes;
 
     @Column(name = "order_date", nullable = false)

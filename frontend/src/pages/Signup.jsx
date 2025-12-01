@@ -44,16 +44,8 @@ const Signup = () => {
     
     // Phone number restriction: max 11 digits and only numbers
     if (name === 'phone') {
-      // Remove any non-digit characters
-      processedValue = value.replace(/\D/g, '');
-      // Limit to 11 characters
-      if (processedValue.length > 11) {
-        processedValue = processedValue.slice(0, 11);
-      }
-      // Ensure it starts with 09
-      if (processedValue.length >= 2 && !processedValue.startsWith('09')) {
-        processedValue = '09' + processedValue.slice(2);
-      }
+      // Allow only numbers and limit to 11 digits
+      processedValue = value.replace(/\D/g, '').slice(0, 11);
     }
     
     // Real-time validation for specific fields
@@ -64,11 +56,11 @@ const Signup = () => {
     } else if (name === 'phone' && processedValue && !validatePhone(processedValue)) {
       if (processedValue.length < 11) {
         fieldError = 'Phone number must be exactly 11 digits.';
-      } else {
-        fieldError = 'Phone number must start with 09.';
+      } else if (!processedValue.startsWith('09')) {
+        fieldError = 'Phone number must be an 11-digit number starting with 09.';
       }
     } else if (name === 'password' && processedValue && !validatePassword(processedValue)) {
-      fieldError = 'Password must be alphanumeric and at least 8 characters long.';
+      fieldError = 'Password must be at least 8 characters long and contain both letters and numbers.';
     } else if (name === 'confirmPassword' && processedValue && formData.password !== processedValue) {
       fieldError = 'Passwords do not match.';
     }
@@ -107,7 +99,7 @@ const Signup = () => {
       if (formData.phone.length < 11) {
         newErrors.phone = 'Phone number must be exactly 11 digits.';
       } else {
-        newErrors.phone = 'Phone number must be 11 digits and start with 09.';
+        newErrors.phone = 'Phone number must be an 11-digit number starting with 09.';
       }
     }
 
@@ -121,7 +113,7 @@ const Signup = () => {
     if (!formData.password) {
       newErrors.password = 'Password is required.';
     } else if (!validatePassword(formData.password)) {
-      newErrors.password = 'Password must be alphanumeric and at least 8 characters long.';
+      newErrors.password = 'Password must be at least 8 characters long and contain both letters and numbers.';
     }
 
     // Confirm password validation
@@ -135,6 +127,7 @@ const Signup = () => {
   };
 
   const handleNext = () => {
+    setError(''); // Clear main error on navigation
     const step1Errors = validateStep1();
     setErrors(step1Errors);
 
@@ -152,6 +145,16 @@ const Signup = () => {
     
     const allErrors = { ...step1Errors, ...step2Errors };
     setErrors(allErrors);
+
+    console.log('Submitting form data:', {
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
+      username: formData.username.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      address: formData.address.trim(),
+      password: formData.password
+    });
 
     if (Object.keys(allErrors).length > 0) {
       setError('Please fix the validation errors before submitting.');
@@ -177,15 +180,23 @@ const Signup = () => {
         } 
       });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
-      console.error('Signup error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
+      console.error('Signup error:', {
+        message: errorMessage,
+        fullError: err,
+        response: err.response
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const nextStep = () => setStep(prev => prev + 1);
-  const prevStep = () => setStep(prev => prev - 1);
+  const prevStep = () => {
+    setStep(prev => prev - 1);
+    setError(''); // Clear main error on navigation
+  };
 
   return (
     <div className="auth-page">
@@ -331,7 +342,6 @@ const Signup = () => {
                     />
                   </div>
                   {errors.password && <small className="error-text">{errors.password}</small>}
-                  <small className="hint-text">Must be alphanumeric and at least 8 characters long</small>
                 </div>
 
                 <div className="form-group">

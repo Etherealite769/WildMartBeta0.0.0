@@ -24,7 +24,7 @@ public class Review {
     private Integer rating;
 
     @Lob
-    @Column(name = "review_text")
+    @Column(name = "review_text", columnDefinition = "TEXT")
     private String reviewText;
 
     @Column(name = "created_at", nullable = false)

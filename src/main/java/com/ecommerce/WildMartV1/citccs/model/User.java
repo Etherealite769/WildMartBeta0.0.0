@@ -35,10 +35,11 @@ public class User {
     private String profileImage;
 
     @Lob
+    @Column(columnDefinition = "TEXT")
     private String bio;
 
     @Lob
-    @Column(name = "shipping_address")
+    @Column(name = "shipping_address", columnDefinition = "TEXT")
     private String shippingAddress;
 
     @Column(name = "payment_info_encrypted")
