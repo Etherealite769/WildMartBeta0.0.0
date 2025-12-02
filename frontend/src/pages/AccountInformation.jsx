@@ -6,20 +6,18 @@ import '../styles/AccountInformation.css';
 import profilePlaceholder from '../assets/placeholder.png';
 
 const AccountInformation = () => {
-  const [profileName, setProfileName] = useState('NAME');
-  const [profileDescription, setProfileDescription] = useState('About the User!'); 
+  const [profileName, setProfileName] = useState(''); 
   const [activeTab, setActiveTab] = useState('accountInformation');
 
   const navigate = useNavigate();
   const [accountData, setAccountData] = useState({
     username: '',
     email: '',
-    phone: '',
-    address: '',
-    city: '',
-    zipCode: '',
-    country: ''
+    phone: '', // Maps to phoneNumber on backend
+    address: '', // Maps to shippingAddress on backend
   });
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [userRole, setUserRole] = useState('BUYER');
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +30,12 @@ const AccountInformation = () => {
       const response = await axios.get('http://localhost:8080/api/user/account', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setAccountData(response.data);
+      // Map backend fields to frontend state
+      setAccountData({
+        ...response.data,
+        phone: response.data.phoneNumber || '',
+        address: response.data.shippingAddress || ''
+      });
       // Get user role from localStorage
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       setUserRole(storedUser.role || 'BUYER');
@@ -48,15 +51,54 @@ const AccountInformation = () => {
     });
   };
 
+  const handlePasswordChange = (e) => {
+    setNewPassword(e.target.value);
+  };
+
+  const handleConfirmPasswordChange = (e) => {
+    setConfirmNewPassword(e.target.value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put('http://localhost:8080/api/user/account', accountData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      const token = localStorage.getItem('token');
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      // Prepare data for account update
+      const updatePayload = {
+        username: accountData.username,
+        email: accountData.email,
+        phoneNumber: accountData.phone, // Map frontend 'phone' to backend 'phoneNumber'
+        shippingAddress: accountData.address, // Map frontend 'address' to backend 'shippingAddress'
+      };
+
+      await axios.put('http://localhost:8080/api/user/account', updatePayload, config);
       alert('Account information updated successfully!');
+
+      // Handle password change if newPassword fields are filled
+      if (newPassword || confirmNewPassword) {
+        if (newPassword !== confirmNewPassword) {
+          alert('New password and confirm password do not match.');
+          return;
+        }
+        if (newPassword.length < 6) { // Example: minimum password length
+          alert('Password must be at least 6 characters long.');
+          return;
+        }
+        
+        // Assuming a separate endpoint for password change
+        await axios.post('http://localhost:8080/api/user/change-password', { newPassword }, config);
+        alert('Password updated successfully!');
+        setNewPassword('');
+        setConfirmNewPassword('');
+      }
+
     } catch (error) {
-      console.error('Error updating account:', error);
+      console.error('Error updating account or password:', error);
+      alert('Failed to update account information or password.');
     }
   };
 
@@ -98,30 +140,30 @@ const AccountInformation = () => {
     switch (activeTab) {
       case 'accountInformation':
         return (
-          <div className="account-form-content">
-            <div className="input-group">
-              <label htmlFor="change-password">Change Password</label>
-              <input type="password" id="change-password" placeholder="Change Password" />
+          <div className="account-form-content display-info">
+            <h3>Account Information</h3>
+            <div className="info-group">
+              <label>Username:</label>
+              <span>{accountData.username}</span>
             </div>
-            <div className="input-group">
-              <label htmlFor="confirm-password">Confirm Password</label>
-              <input type="password" id="confirm-password" placeholder="Confirm Password" />
+            <div className="info-group">
+              <label>Email:</label>
+              <span>{accountData.email}</span>
             </div>
-            <div className="input-group">
-              <label htmlFor="change-email">Change Email</label>
-              <input type="email" id="change-email" placeholder="Change Email" />
+            <div className="info-group">
+              <label>Phone:</label>
+              <span>{accountData.phone || 'N/A'}</span>
             </div>
-            <div className="input-group">
-              <label htmlFor="verify">Verify</label>
-              <input type="text" id="verify" placeholder="Verify" />
+            <div className="info-group">
+              <label>Address:</label>
+              <span>{accountData.address || 'N/A'}</span>
             </div>
-            <button className="save-button">SAVE</button>
           </div>
         );
       case 'editProfile':
         return (
           <div className="account-form-content">
-            <h3>Edit Profile Content</h3>
+            <h3 style={{ color: '#800000' }}>Edit Profile Information</h3>
             <form onSubmit={handleSubmit} className="account-form">
               <div className="form-section">
                 <h3>Personal Information</h3>
@@ -171,36 +213,28 @@ const AccountInformation = () => {
                     onChange={handleChange}
                   />
                 </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="city">City</label>
-                    <input
-                      type="text"
-                      id="city"
-                      name="city"
-                      value={accountData.city}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="zipCode">Zip Code</label>
-                    <input
-                      type="text"
-                      id="zipCode"
-                      name="zipCode"
-                      value={accountData.zipCode}
-                      onChange={handleChange}
-                    />
-                  </div>
+              </div>
+
+              <div className="form-section">
+                <h3>Account Security</h3>
+                <div className="form-group">
+                  <label htmlFor="new-password">New Password</label>
+                  <input
+                    type="password"
+                    id="new-password"
+                    placeholder="New Password"
+                    value={newPassword}
+                    onChange={handlePasswordChange}
+                  />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="country">Country</label>
+                  <label htmlFor="confirm-new-password">Confirm New Password</label>
                   <input
-                    type="text"
-                    id="country"
-                    name="country"
-                    value={accountData.country}
-                    onChange={handleChange}
+                    type="password"
+                    id="confirm-new-password"
+                    placeholder="Confirm New Password"
+                    value={confirmNewPassword}
+                    onChange={handleConfirmPasswordChange}
                   />
                 </div>
               </div>
@@ -212,19 +246,12 @@ const AccountInformation = () => {
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => navigate('/profile')}
+                  onClick={() => setActiveTab('accountInformation')}
                 >
                   Cancel
                 </button>
               </div>
             </form>
-          </div>
-        );
-      case 'about':
-        return (
-          <div className="account-form-content">
-            <h3>About Content</h3>
-            <p>This is the about section of the profile page.</p>
           </div>
         );
       case 'becomeSeller':
@@ -273,8 +300,7 @@ const AccountInformation = () => {
             <img src={profilePlaceholder} alt="Profile" className="profile-picture" />
           </div>
           <div className="profile-info">
-            <h1 className="profile-name">{profileName}</h1>
-            <p className="profile-description">{profileDescription}</p>
+            <h1 className="profile-name">{accountData.fullName || accountData.username}</h1>
           </div>
         </div>
       </div>
@@ -292,12 +318,6 @@ const AccountInformation = () => {
             onClick={() => setActiveTab('editProfile')}
           >
             EDIT PROFILE
-          </button>
-          <button 
-            className={`sidebar-button ${activeTab === 'about' ? 'active' : ''}`}
-            onClick={() => setActiveTab('about')}
-          >
-            ABOUT
           </button>
           {userRole !== 'SELLER' && (
             <button 

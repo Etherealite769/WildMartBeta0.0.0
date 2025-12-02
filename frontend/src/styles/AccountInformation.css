@@ -299,3 +299,35 @@
   color: white;
   border-color: var(--secondary-color);
 }
+
+/* Styles for display-only account information */
+.display-info h3 {
+  font-size: 24px;
+  color: var(--primary-color);
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.display-info .info-group {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.display-info .info-group:last-child {
+  border-bottom: none;
+}
+
+.display-info .info-group label {
+  font-weight: bold;
+  color: var(--text-color);
+  flex-basis: 30%;
+  text-align: left;
+}
+
+.display-info .info-group span {
+  color: var(--text-color);
+  flex-basis: 65%;
+  text-align: right;
+}
