@@ -20,7 +20,7 @@ public class UserController {
     
     @GetMapping("/profile")
     public ResponseEntity<UserDTO> getProfile(@RequestHeader("Authorization") String token) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         UserDTO user = userService.getUserProfile(userId);
         return ResponseEntity.ok(user);
     }
@@ -29,14 +29,14 @@ public class UserController {
     public ResponseEntity<UserDTO> updateProfile(
             @RequestHeader("Authorization") String token,
             @RequestBody UserDTO userDTO) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         UserDTO updated = userService.updateUserProfile(userId, userDTO);
         return ResponseEntity.ok(updated);
     }
     
     @GetMapping("/account")
     public ResponseEntity<UserDTO> getAccount(@RequestHeader("Authorization") String token) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         UserDTO user = userService.getUserProfile(userId);
         return ResponseEntity.ok(user);
     }
@@ -45,21 +45,21 @@ public class UserController {
     public ResponseEntity<UserDTO> updateAccount(
             @RequestHeader("Authorization") String token,
             @RequestBody UserDTO userDTO) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         UserDTO updated = userService.updateUserProfile(userId, userDTO);
         return ResponseEntity.ok(updated);
     }
     
     @GetMapping("/products")
     public ResponseEntity<List<Product>> getUserProducts(@RequestHeader("Authorization") String token) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         List<Product> products = userService.getUserProducts(userId);
         return ResponseEntity.ok(products);
     }
     
     @GetMapping("/likes")
     public ResponseEntity<Set<Product>> getLikedProducts(@RequestHeader("Authorization") String token) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         Set<Product> products = userService.getLikedProducts(userId);
         return ResponseEntity.ok(products);
     }
@@ -67,8 +67,8 @@ public class UserController {
     @PostMapping("/likes/{productId}")
     public ResponseEntity<?> likeProduct(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long productId) {
-        Long userId = extractUserIdFromToken(token);
+            @PathVariable Integer productId) {
+        Integer userId = extractUserIdFromToken(token);
         userService.likeProduct(userId, productId);
         return ResponseEntity.ok().build();
     }
@@ -76,17 +76,17 @@ public class UserController {
     @DeleteMapping("/likes/{productId}")
     public ResponseEntity<?> unlikeProduct(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long productId) {
-        Long userId = extractUserIdFromToken(token);
+            @PathVariable Integer productId) {
+        Integer userId = extractUserIdFromToken(token);
         userService.unlikeProduct(userId, productId);
         return ResponseEntity.ok().build();
     }
     
     // Simplified token extraction - in production use JWT
-    private Long extractUserIdFromToken(String token) {
+    private Integer extractUserIdFromToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
-        return Long.parseLong(token.replace("token_", ""));
+        return Integer.parseInt(token.replace("token_", ""));
     }
 }

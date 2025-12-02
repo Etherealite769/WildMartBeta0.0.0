@@ -9,26 +9,23 @@ import com.ecommerce.WildMartV1.citccs.model.Cart;
 import com.ecommerce.WildMartV1.citccs.model.User;
 import com.ecommerce.WildMartV1.citccs.repository.CartRepository;
 import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class AuthService {
     
-    @Autowired
-    private UserRepository userRepository;
-    
-    @Autowired
-    private CartRepository cartRepository;
-    
-    @Autowired
-    private JwtService jwtService;
-    
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final CartRepository cartRepository;
+    private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
     
     public AuthResponse register(SignupRequest request) {
         // Check if user already exists
@@ -45,14 +42,17 @@ public class AuthService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setFullName(request.getFirstName() + " " + request.getLastName());
-        user.setPhoneNumber(request.getPhone());
-        user.setShippingAddress(request.getAddress());
+        user.setFullName(request.getFullName());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setShippingAddress(request.getShippingAddress());
+        String role = (request.getRole() != null && !request.getRole().isEmpty()) ? request.getRole().toUpperCase() : "BUYER";
+        user.setRole(User.Role.valueOf(role));
         
         user = userRepository.save(user);
         
         // Create cart for user
-        Cart cart = new Cart(user);
+        Cart cart = new Cart();
+        cart.setUser(user);
         cartRepository.save(cart);
         
         // Generate JWT token
@@ -82,13 +82,14 @@ public class AuthService {
             Optional<User> user = userRepository.findByEmail(username);
             return user.isPresent() && jwtService.validateToken(token, username);
         } catch (Exception e) {
+            log.error("JWT validation failed: {}", e.getMessage());
             return false;
         }
     }
     
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
+        dto.setUserId(user.getUserId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setFullName(user.getFullName());
@@ -96,8 +97,10 @@ public class AuthService {
         dto.setProfileImage(user.getProfileImage());
         dto.setShippingAddress(user.getShippingAddress());
         dto.setPaymentInfoEncrypted(user.getPaymentInfoEncrypted());
+        dto.setRole(user.getRole().name()); // Convert Enum to String
         dto.setVerified(user.getVerified());
-        dto.setBio(user.getBio());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setUpdatedAt(user.getUpdatedAt());
         return dto;
     }
 }

@@ -8,36 +8,35 @@ import com.ecommerce.WildMartV1.citccs.repository.CartItemRepository;
 import com.ecommerce.WildMartV1.citccs.repository.CartRepository;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
 import com.ecommerce.WildMartV1.citccs.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cart")
 @CrossOrigin(origins = "http://localhost:3000")
+@RequiredArgsConstructor
 public class CartController {
     
-    @Autowired
-    private CartRepository cartRepository;
-    
-    @Autowired
-    private CartItemRepository cartItemRepository;
-    
-    @Autowired
-    private ProductRepository productRepository;
-    
-    @Autowired
-    private UserService userService;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final ProductRepository productRepository;
+    private final UserService userService;
     
     @GetMapping
     public ResponseEntity<Cart> getCart(@RequestHeader("Authorization") String token) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         User user = userService.getUserById(userId);
         Cart cart = cartRepository.findByUser(user)
                 .orElseGet(() -> {
-                    Cart newCart = new Cart(user);
+                    Cart newCart = new Cart();
+                    newCart.setUser(user);
+                    newCart.setCreatedAt(LocalDateTime.now());
+                    newCart.setUpdatedAt(LocalDateTime.now());
+                    newCart.setStatus("active");
                     return cartRepository.save(newCart);
                 });
         return ResponseEntity.ok(cart);
@@ -47,29 +46,34 @@ public class CartController {
     public ResponseEntity<?> addToCart(
             @RequestHeader("Authorization") String token,
             @RequestBody Map<String, Object> request) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         User user = userService.getUserById(userId);
         
         Cart cart = cartRepository.findByUser(user)
                 .orElseGet(() -> {
-                    Cart newCart = new Cart(user);
+                    Cart newCart = new Cart();
+                    newCart.setUser(user);
+                    newCart.setCreatedAt(LocalDateTime.now());
+                    newCart.setUpdatedAt(LocalDateTime.now());
+                    newCart.setStatus("active");
                     return cartRepository.save(newCart);
                 });
         
-        Long productId = Long.parseLong(request.get("productId").toString());
+        Integer productId = Integer.parseInt(request.get("productId").toString());
         Integer quantity = Integer.parseInt(request.get("quantity").toString());
         
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         
         CartItem cartItem = cart.getItems().stream()
-                .filter(item -> item.getProduct().getId().equals(productId))
+                .filter(item -> item.getProduct().getProductId().equals(productId))
                 .findFirst()
                 .orElse(null);
 
         if (cartItem == null) {
             cartItem = new CartItem(cart, product, quantity, product.getPrice());
-            cart.addItem(cartItem);
+            cart.getItems().add(cartItem);
+            cartItem.setCart(cart); // Ensure bidirectional relationship is set
         } else {
             cartItem.setQuantity(cartItem.getQuantity() + quantity);
             cartItem.setPriceAtAddition(product.getPrice());
@@ -83,7 +87,7 @@ public class CartController {
     @PutMapping("/items/{itemId}")
     public ResponseEntity<?> updateCartItem(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long itemId,
+            @PathVariable Integer itemId,
             @RequestBody Map<String, Integer> request) {
         CartItem item = cartItemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Cart item not found"));
@@ -101,15 +105,15 @@ public class CartController {
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<?> removeCartItem(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long itemId) {
+            @PathVariable Integer itemId) {
         cartItemRepository.deleteById(itemId);
         return ResponseEntity.ok().build();
     }
     
-    private Long extractUserIdFromToken(String token) {
+    private Integer extractUserIdFromToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
-        return Long.parseLong(token.replace("token_", ""));
+        return Integer.parseInt(token.replace("token_", ""));
     }
 }

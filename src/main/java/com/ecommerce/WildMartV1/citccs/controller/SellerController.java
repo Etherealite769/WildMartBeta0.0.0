@@ -18,13 +18,13 @@ public class SellerController {
     private UserService userService;
     
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getSellerInfo(@PathVariable Long id) {
+    public ResponseEntity<UserDTO> getSellerInfo(@PathVariable Integer id) {
         UserDTO seller = userService.getUserProfile(id);
         return ResponseEntity.ok(seller);
     }
     
     @GetMapping("/{id}/products")
-    public ResponseEntity<List<Product>> getSellerProducts(@PathVariable Long id) {
+    public ResponseEntity<List<Product>> getSellerProducts(@PathVariable Integer id) {
         List<Product> products = userService.getUserProducts(id);
         return ResponseEntity.ok(products);
     }

@@ -6,7 +6,8 @@ import com.ecommerce.WildMartV1.citccs.model.Product;
 import com.ecommerce.WildMartV1.citccs.model.User;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
 import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -15,25 +16,24 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class UserService {
     
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final ProductRepository productRepository;
     
-    @Autowired
-    private ProductRepository productRepository;
-    
-    public User getUserById(long id) {
-        return userRepository.findById(id)
+    public User getUserById(Integer userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
     
-    public UserDTO getUserProfile(long userId) {
+    public UserDTO getUserProfile(Integer userId) {
         User user = getUserById(userId);
         return convertToDTO(user);
     }
     
-    public UserDTO updateUserProfile(long userId, UserDTO userDTO) {
+    public UserDTO updateUserProfile(Integer userId, UserDTO userDTO) {
         User user = getUserById(userId);
         
         if (userDTO.getUsername() != null) {
@@ -57,36 +57,36 @@ public class UserService {
         if (userDTO.getPaymentInfoEncrypted() != null) {
             user.setPaymentInfoEncrypted(userDTO.getPaymentInfoEncrypted());
         }
+        if (userDTO.getRole() != null) {
+            user.setRole(User.Role.valueOf(userDTO.getRole().toUpperCase()));
+        }
         if (userDTO.getVerified() != null) {
             user.setVerified(userDTO.getVerified());
-        }
-        if (userDTO.getBio() != null) {
-            user.setBio(userDTO.getBio());
         }
         
         user = userRepository.save(user);
         return convertToDTO(user);
     }
     
-    public List<Product> getUserProducts(long userId) {
+    public List<Product> getUserProducts(Integer userId) {
         User user = getUserById(userId);
         return productRepository.findBySeller(user);
     }
     
-    public Set<Product> getLikedProducts(long userId) {
+    public Set<Product> getLikedProducts(Integer userId) {
         User user = getUserById(userId);
         return user.getLikes().stream()
                 .map(Like::getProduct)
                 .collect(Collectors.toCollection(HashSet::new));
     }
     
-    public void likeProduct(long userId, long productId) {
+    public void likeProduct(Integer userId, Integer productId) {
         User user = getUserById(userId);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         boolean alreadyLiked = user.getLikes().stream()
-                .anyMatch(like -> like.getProduct().getId() == productId);
+                .anyMatch(like -> like.getProduct().getProductId().equals(productId));
 
         if (!alreadyLiked) {
             Like like = new Like(user, product);
@@ -97,20 +97,20 @@ public class UserService {
         }
     }
 
-    public void unlikeProduct(long userId, long productId) {
+    public void unlikeProduct(Integer userId, Integer productId) {
         User user = getUserById(userId);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        user.getLikes().removeIf(like -> like.getProduct().getId().equals(productId));
-        product.getLikes().removeIf(like -> like.getUser().getId().equals(userId));
+        user.getLikes().removeIf(like -> like.getProduct().getProductId().equals(productId));
+        product.getLikes().removeIf(like -> like.getUser().getUserId().equals(userId));
         userRepository.save(user);
         productRepository.save(product);
     }
 
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
+        dto.setUserId(user.getUserId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setFullName(user.getFullName());
@@ -118,8 +118,8 @@ public class UserService {
         dto.setProfileImage(user.getProfileImage());
         dto.setShippingAddress(user.getShippingAddress());
         dto.setPaymentInfoEncrypted(user.getPaymentInfoEncrypted());
+        dto.setRole(user.getRole().name()); // Convert Enum to String
         dto.setVerified(user.getVerified());
-        dto.setBio(user.getBio());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());
         return dto;

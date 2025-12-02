@@ -8,8 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface OrderRepository extends JpaRepository<Order, Long> {
+public interface OrderRepository extends JpaRepository<Order, Integer> {
     List<Order> findByBuyer(User buyer);
     List<Order> findByBuyerOrderByOrderDateDesc(User buyer);
-    List<Order> findBySellerOrderByOrderDateDesc(User seller);
 }

@@ -9,7 +9,7 @@ import com.ecommerce.WildMartV1.citccs.model.User;
 import com.ecommerce.WildMartV1.citccs.repository.CartRepository;
 import com.ecommerce.WildMartV1.citccs.repository.OrderRepository;
 import com.ecommerce.WildMartV1.citccs.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,20 +20,16 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "http://localhost:3000")
+@RequiredArgsConstructor
 public class OrderController {
 
-    @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    private CartRepository cartRepository;
-
-    @Autowired
-    private UserService userService;
+    private final OrderRepository orderRepository;
+    private final CartRepository cartRepository;
+    private final UserService userService;
 
     @GetMapping("/user/orders")
     public ResponseEntity<List<Order>> getUserOrders(@RequestHeader("Authorization") String token) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         User user = userService.getUserById(userId);
         List<Order> orders = orderRepository.findByBuyerOrderByOrderDateDesc(user);
         return ResponseEntity.ok(orders);
@@ -41,7 +37,7 @@ public class OrderController {
 
     @PostMapping("/orders/checkout")
     public ResponseEntity<Order> checkout(@RequestHeader("Authorization") String token) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         User buyer = userService.getUserById(userId);
 
         Cart cart = cartRepository.findByUser(buyer)
@@ -51,18 +47,12 @@ public class OrderController {
             throw new RuntimeException("Cart is empty");
         }
 
-        Product firstProduct = cart.getItems().get(0).getProduct();
-        User seller = firstProduct.getSeller();
-
-        boolean mixedSellers = cart.getItems().stream()
-                .anyMatch(item -> !item.getProduct().getSeller().getId().equals(seller.getId()));
-        if (mixedSellers) {
-            throw new RuntimeException("Cart contains items from multiple sellers. Please checkout separately.");
-        }
+        // In a real application, you would group items by seller and create multiple orders
+        // For simplicity, this example assumes a single seller per cart checkout, or first product's seller as reference
+        // Or, more accurately, remove seller from Order model completely as it's not in the new ERD
 
         Order order = new Order();
         order.setBuyer(buyer);
-        order.setSeller(seller);
         order.setOrderNumber("ORD-" + UUID.randomUUID());
         order.setShippingAddress(buyer.getShippingAddress());
 
@@ -75,6 +65,7 @@ public class OrderController {
             OrderItem orderItem = new OrderItem(order, cartItem.getProduct(), cartItem.getQuantity(), unitPrice);
             totalAmount = totalAmount.add(orderItem.getSubtotal());
             order.getItems().add(orderItem);
+            orderItem.setOrder(order); // Ensure bidirectional relationship
         }
         order.setTotalAmount(totalAmount);
 
@@ -88,16 +79,16 @@ public class OrderController {
 
     @GetMapping("/user/purchases")
     public ResponseEntity<List<Order>> getPurchases(@RequestHeader("Authorization") String token) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         User user = userService.getUserById(userId);
         List<Order> orders = orderRepository.findByBuyerOrderByOrderDateDesc(user);
         return ResponseEntity.ok(orders);
     }
 
-    private Long extractUserIdFromToken(String token) {
+    private Integer extractUserIdFromToken(String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
-        return Long.parseLong(token.replace("token_", ""));
+        return Integer.parseInt(token.replace("token_", ""));
     }
 }

@@ -33,7 +33,7 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+    public ResponseEntity<Product> getProductById(@PathVariable Integer id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         return ResponseEntity.ok(product);
@@ -43,7 +43,7 @@ public class ProductController {
     public ResponseEntity<Product> createProduct(
             @RequestHeader("Authorization") String token,
             @RequestBody Product product) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         User seller = userService.getUserById(userId);
         product.setSeller(seller);
         product.setCategory(resolveCategory(product.getCategory()));
@@ -54,13 +54,13 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long id,
+            @PathVariable Integer id,
             @RequestBody Product productDetails) {
-        Long userId = extractUserIdFromToken(token);
+        Integer userId = extractUserIdFromToken(token);
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (!product.getSeller().getId().equals(userId)) {
+        if (!product.getSeller().getUserId().equals(userId)) {
             return ResponseEntity.status(403).build();
         }
 
@@ -85,12 +85,12 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long id) {
-        Long userId = extractUserIdFromToken(token);
+            @PathVariable Integer id) {
+        Integer userId = extractUserIdFromToken(token);
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (!product.getSeller().getId().equals(userId)) {
+        if (!product.getSeller().getUserId().equals(userId)) {
             return ResponseEntity.status(403).build();
         }
 
@@ -116,13 +116,13 @@ public class ProductController {
         return categoryRepository.save(categoryPayload);
     }
 
-    private long extractUserIdFromToken(String token) {
+    private Integer extractUserIdFromToken(String token) {
         if (token == null || token.isBlank()) {
             throw new IllegalArgumentException("Authorization token is required");
         }
         if (token.startsWith("Bearer ")) {
             token = token.substring(7);
         }
-        return Long.parseLong(token.replace("token_", ""));
+        return Integer.parseInt(token.replace("token_", ""));
     }
 }
