@@ -19,7 +19,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/dashboard" className="navbar-brand">
-          <img src={logo} alt="WildMart Logo" style={{ height: '40px' }} />
+          <img src={logo} alt="WildMart Logo" className="navbar-logo" />
         </Link>
 
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
