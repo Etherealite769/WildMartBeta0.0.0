@@ -1,4 +1,5 @@
 import React from 'react';
+import logo from '../assets/logo_wildmart.png';
 import { useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaBook, FaLaptop } from 'react-icons/fa';
 import '../styles/LandingPage.css';
@@ -9,7 +10,7 @@ const LandingPage = () => {
   return (
     <div className="landing-page">
       <header className="landing-header">
-        <h1 className="brand-name">WildMart</h1>
+        <img src={logo} alt="WildMart Logo" className="brand-name" style={{ height: '50px' }} />
         <nav>
           <button className="btn-secondary" onClick={() => navigate('/login')}>Login</button>
           <button className="btn-primary" onClick={() => navigate('/signup')}>Sign Up</button>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logo from '../assets/logo_wildmart.png';
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Navbar.css';
 
@@ -17,7 +18,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/dashboard" className="navbar-brand">
-          WildMart
+          <img src={logo} alt="WildMart Logo" style={{ height: '40px' }} />
         </Link>
 
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
