@@ -8,8 +8,7 @@ import wildmartLogo from '../assets/logo_wildmart.png';
 const Signup = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    fullName: '',
     email: '',
     phone: '',
     address: '',
@@ -55,8 +54,7 @@ const Signup = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required.';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required.';
+    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required.';
     if (!formData.username.trim()) newErrors.username = 'Username is required.';
     if (!formData.address.trim()) newErrors.address = 'Address is required.';
     
@@ -103,12 +101,11 @@ const Signup = () => {
 
     try {
       await axios.post('http://localhost:8080/api/auth/register', {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
+        fullName: formData.fullName.trim(),
         username: formData.username.trim(),
         email: formData.email.trim(),
-        phone: formData.phone.trim(),
-        address: formData.address.trim(),
+        phoneNumber: formData.phone.trim(),
+        shippingAddress: formData.address.trim(),
         password: formData.password
       });
       
@@ -140,41 +137,22 @@ const Signup = () => {
           <h2 className="auth-title">Create Account</h2>
           
           <form onSubmit={handleSubmit} className="auth-form">
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="firstName">First Name</label>
-                <div className="input-with-icon">
-                  <FaUser className="input-icon" />
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    placeholder="John"
-                    required
-                    autoFocus
-                  />
-                </div>
-                {errors.firstName && <small className="error-text">{errors.firstName}</small>}
+            <div className="form-group">
+              <label htmlFor="fullName">Full Name</label>
+              <div className="input-with-icon">
+                <FaUser className="input-icon" />
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  placeholder="John Doe"
+                  required
+                  autoFocus
+                />
               </div>
-
-              <div className="form-group">
-                <label htmlFor="lastName">Last Name</label>
-                <div className="input-with-icon">
-                  <FaUser className="input-icon" />
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    placeholder="Doe"
-                    required
-                  />
-                </div>
-                {errors.lastName && <small className="error-text">{errors.lastName}</small>}
-              </div>
+              {errors.fullName && <small className="error-text">{errors.fullName}</small>}
             </div>
 
             <div className="form-group">
