@@ -20,6 +20,8 @@ const AccountInformation = () => {
     zipCode: '',
     country: ''
   });
+  const [userRole, setUserRole] = useState('BUYER');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchAccountInfo();
@@ -31,6 +33,9 @@ const AccountInformation = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setAccountData(response.data);
+      // Get user role from localStorage
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      setUserRole(storedUser.role || 'BUYER');
     } catch (error) {
       console.error('Error fetching account info:', error);
     }
@@ -52,6 +57,40 @@ const AccountInformation = () => {
       alert('Account information updated successfully!');
     } catch (error) {
       console.error('Error updating account:', error);
+    }
+  };
+
+  const handleBecomeSellerClick = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token:', token);
+      console.log('Making request to become seller...');
+      
+      // Call dedicated become-seller endpoint
+      const response = await axios.post('http://localhost:8080/api/user/become-seller', {}, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Seller response:', response.data);
+
+      // Update localStorage with new role
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      storedUser.role = 'SELLER';
+      localStorage.setItem('user', JSON.stringify(storedUser));
+
+      setUserRole('SELLER');
+      alert('Congratulations! You are now a seller. You can now add and manage your products!');
+      window.location.reload(); // Refresh to update navbar
+    } catch (error) {
+      const errorMessage = error.response?.data || error.message || 'Unknown error occurred';
+      console.error('Error becoming a seller:', errorMessage);
+      alert('Failed to become a seller: ' + errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,6 +227,37 @@ const AccountInformation = () => {
             <p>This is the about section of the profile page.</p>
           </div>
         );
+      case 'becomeSeller':
+        return (
+          <div className="account-form-content">
+            <div className="seller-section">
+              {userRole === 'SELLER' ? (
+                <div className="seller-status">
+                  <h3>✓ You are already a seller</h3>
+                  <p>You can now manage your products and view the "My Products" section in the navigation bar.</p>
+                </div>
+              ) : (
+                <div className="seller-prompt">
+                  <h3>Become a Seller</h3>
+                  <p>Start selling your products on WildMart! Once you become a seller, you'll be able to:</p>
+                  <ul>
+                    <li>Add and manage your products</li>
+                    <li>View your sales and orders</li>
+                    <li>Access the "My Products" section in the navigation</li>
+                    <li>Reach thousands of buyers</li>
+                  </ul>
+                  <button 
+                    className="become-seller-btn"
+                    onClick={handleBecomeSellerClick}
+                    disabled={loading}
+                  >
+                    {loading ? 'Processing...' : 'Become a Seller Now'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -229,6 +299,14 @@ const AccountInformation = () => {
           >
             ABOUT
           </button>
+          {userRole !== 'SELLER' && (
+            <button 
+              className={`sidebar-button seller-btn ${activeTab === 'becomeSeller' ? 'active' : ''}`}
+              onClick={() => setActiveTab('becomeSeller')}
+            >
+              🚀 BECOME A SELLER
+            </button>
+          )}
           <button className="sidebar-button logout-button">LOGOUT</button>
         </div>
         <div className="main-content">

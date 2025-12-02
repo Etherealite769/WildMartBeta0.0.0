@@ -58,7 +58,12 @@ public class UserService {
             user.setPaymentInfoEncrypted(userDTO.getPaymentInfoEncrypted());
         }
         if (userDTO.getRole() != null) {
-            user.setRole(User.Role.valueOf(userDTO.getRole().toUpperCase()));
+            try {
+                user.setRole(User.Role.valueOf(userDTO.getRole().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid role provided: {}", userDTO.getRole());
+                throw new RuntimeException("Invalid role: " + userDTO.getRole());
+            }
         }
         if (userDTO.getVerified() != null) {
             user.setVerified(userDTO.getVerified());

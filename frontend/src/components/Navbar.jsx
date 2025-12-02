@@ -7,6 +7,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isSeller = user?.role === 'SELLER';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -23,7 +24,7 @@ const Navbar = () => {
 
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
           <Link to="/dashboard" className="nav-link">Dashboard</Link>
-          <Link to="/my-products" className="nav-link">My Products</Link>
+          {isSeller && <Link to="/my-products" className="nav-link">My Products</Link>}
           <Link to="/my-orders" className="nav-link">My Orders</Link>
           <Link to="/my-likes" className="nav-link">Likes</Link>
           <Link to="/cart" className="nav-link">

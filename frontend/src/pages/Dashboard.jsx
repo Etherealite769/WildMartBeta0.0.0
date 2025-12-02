@@ -20,13 +20,18 @@ const Dashboard = () => {
 
   const fetchProducts = async () => {
     try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching products with token:', token ? 'present' : 'missing');
+      
       const response = await axios.get('http://localhost:8080/api/products', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
+      
+      console.log('Products fetched:', response.data);
       setProducts(response.data);
       setFilteredProducts(response.data);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching products:', error.response?.data || error.message);
     }
   };
 
@@ -45,14 +50,20 @@ const Dashboard = () => {
     let filtered = products;
     
     if (category !== 'All') {
-      filtered = filtered.filter(p => p.category === category);
+      // Handle both categoryName and category.categoryName formats
+      filtered = filtered.filter(p => {
+        const productCategory = p.categoryName || p.category?.categoryName || p.category;
+        return productCategory === category;
+      });
     }
     
     if (term) {
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(term.toLowerCase()) ||
-        p.description.toLowerCase().includes(term.toLowerCase())
-      );
+      filtered = filtered.filter(p => {
+        const name = p.productName || p.name || '';
+        const desc = p.description || '';
+        return name.toLowerCase().includes(term.toLowerCase()) ||
+               desc.toLowerCase().includes(term.toLowerCase());
+      });
     }
     
     setFilteredProducts(filtered);
