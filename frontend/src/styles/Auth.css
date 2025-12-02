@@ -28,6 +28,7 @@
   padding: 40px;
   position: relative;
   overflow: hidden;
+  text-align: center; /* Center the text inside this container */
 }
 
 .auth-visual-content {
@@ -45,6 +46,20 @@
   height: auto;
   margin-bottom: 20px; /* Space between logo and any potential text below */
   border-radius: 50%; /* Make the image round */
+}
+
+.gold-text {
+  color: #FFD700; /* Gold color */
+}
+
+.signup-logo {
+  max-width: 150px; /* Adjust size as needed */
+  height: auto;
+  margin-bottom: 20px; /* Space between logo and text */
+  border-radius: 50%; /* Optional: if you want a round logo */
+  display: block; /* Make it a block element to apply margin auto */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .auth-form-section {
@@ -180,10 +195,6 @@
 .error-text {
   color: #C0392B;
   font-size: 13px;
-}
-
-.gold-text {
-  color: #FFD700; /* Gold color */
 }
 
 .login-logo {
