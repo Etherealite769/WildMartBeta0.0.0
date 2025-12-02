@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { FaUser, FaEnvelope, FaLock, FaPhone, FaMapMarkerAlt, FaIdCard } from 'react-icons/fa';
 import '../styles/Auth.css';
+import wildmartLogo from '../assets/logo_wildmart.png';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -129,8 +130,9 @@ const Signup = () => {
       <div className="auth-container">
         <div className="auth-visual">
           <div className="visual-circle">
-            <h2>Welcome to WildMart</h2>
-            <p>Join our community today</p>
+            <img src={wildmartLogo} alt="WildMart Logo" className="signup-logo" />
+            <h2 className="gold-text">Welcome to WildMart</h2>
+            <p className="gold-text">Join our community today!</p>
           </div>
         </div>
 
