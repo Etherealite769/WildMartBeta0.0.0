@@ -25,6 +25,9 @@ public class Like {
     @Column(name = "liked_at", nullable = false)
     private LocalDateTime likedAt = LocalDateTime.now();
 
+    public Like() {
+    }
+
     public Like(User user, Product product) {
         this.user = user;
         this.product = product;
