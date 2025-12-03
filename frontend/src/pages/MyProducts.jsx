@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
+import ProductCard from '../components/ProductCard';
 import '../styles/MyProducts.css';
 
 const MyProducts = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     fetchMyProducts();
@@ -42,6 +44,7 @@ const MyProducts = () => {
         });
 
         fetchMyProducts(); // Refresh the list
+        setSelectedProduct(null); // Close modal
       } catch (error) {
         console.error('Error deleting product:', error);
         alert('Error deleting product. Please try again.');
@@ -106,50 +109,87 @@ const MyProducts = () => {
           </button>
         </div>
 
-        <div className="products-list">
+        <div className="products-grid-my-products">
           {filteredProducts.length === 0 ? (
             <div className="empty-state">
               <p>No products found.</p>
             </div>
           ) : (
             filteredProducts.map(product => (
-              <div key={product.productId} className="product-item">
-                <div className="product-image">
-                  <img 
-                    src={product.imageUrl || '/placeholder.png'} 
-                    alt={product.productName} 
-                    onError={(e) => {
-                      e.target.src = '/placeholder.png';
-                    }}
-                  />
-                </div>
-                <div className="product-details">
-                  <h3>{product.productName}</h3>
-                  <p className="product-price">₱{product.price ? parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</p>
-                  <p className="product-stock">Quantity: {product.quantityAvailable || 0}</p>
-                  <span className={`product-status ${getStatusClass(product.status)}`}>
-                    {product.status ? product.status.charAt(0).toUpperCase() + product.status.slice(1) : 'Draft'}
-                  </span>
-                </div>
-                <div className="product-actions">
-                  <button 
-                    className="btn-edit"
-                    onClick={() => navigate(`/edit-product/${product.productId}`)}
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    className="btn-delete"
-                    onClick={() => handleDelete(product.productId)}
-                  >
-                    Delete
-                  </button>
-                </div>
+              <div key={product.productId} className="product-card-wrapper">
+                <ProductCard 
+                  product={product} 
+                  onClick={() => setSelectedProduct(product)}
+                />
+                <span className={`product-status ${getStatusClass(product.status)}`}>
+                  {product.status ? product.status.charAt(0).toUpperCase() + product.status.slice(1) : 'Draft'}
+                </span>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {/* Product Details Modal */}
+      {selectedProduct && (
+        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setSelectedProduct(null)}>×</button>
+            
+            <div className="modal-body">
+              <div className="modal-image">
+                <img 
+                  src={selectedProduct.imageUrl || '/placeholder.png'} 
+                  alt={selectedProduct.productName}
+                  onError={(e) => {
+                    e.target.src = '/placeholder.png';
+                  }}
+                />
+              </div>
+              
+              <div className="modal-info">
+                <h2>{selectedProduct.productName}</h2>
+                <p className="modal-price">₱{selectedProduct.price ? parseFloat(selectedProduct.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</p>
+                
+                <div className="modal-details">
+                  <div className="detail-row">
+                    <span className="detail-label">Status:</span>
+                    <span className={`product-status ${getStatusClass(selectedProduct.status)}`}>
+                      {selectedProduct.status ? selectedProduct.status.charAt(0).toUpperCase() + selectedProduct.status.slice(1) : 'Draft'}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Quantity Available:</span>
+                    <span className="detail-value">{selectedProduct.quantityAvailable || 0}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Description:</span>
+                    <p className="detail-description">{selectedProduct.description || 'No description provided'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                className="btn-edit"
+                onClick={() => {
+                  navigate(`/edit-product/${selectedProduct.productId}`);
+                  setSelectedProduct(null);
+                }}
+              >
+                Edit
+              </button>
+              <button 
+                className="btn-delete"
+                onClick={() => handleDelete(selectedProduct.productId)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

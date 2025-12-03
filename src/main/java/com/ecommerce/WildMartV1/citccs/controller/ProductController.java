@@ -72,8 +72,8 @@ public class ProductController {
         String userEmail = authentication.getName();
 
         User seller = userRepository.findByEmail(userEmail)
-                            .orElseThrow(() -> new RuntimeException("Seller not found with email: " + userEmail));
-        
+                .orElseThrow(() -> new RuntimeException("Seller not found with email: " + userEmail));
+
         Product product = new Product();
         product.setSeller(seller);
         product.setProductName(productName);
@@ -130,7 +130,7 @@ public class ProductController {
         String userEmail = authentication.getName();
 
         User currentUser = userRepository.findByEmail(userEmail)
-                                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -157,6 +157,78 @@ public class ProductController {
         return ResponseEntity.ok(updated);
     }
 
+    @PutMapping("/{id}/multipart")
+    public ResponseEntity<Product> updateProductMultipart(
+            @PathVariable Integer id,
+            @RequestParam("productName") String productName,
+            @RequestParam("categoryName") String categoryName,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam("price") String price,
+            @RequestParam("quantityAvailable") Integer quantityAvailable,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            System.err.println("Authentication failed: authentication is null or not authenticated");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String userEmail = authentication.getName();
+        System.out.println("User email from auth: " + userEmail);
+
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+
+        System.out.println("Current user ID: " + currentUser.getUserId());
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        System.out.println("Product seller ID: " + product.getSeller().getUserId());
+
+        if (!product.getSeller().getUserId().equals(currentUser.getUserId())) {
+            System.err.println("User ID mismatch! Product seller: " + product.getSeller().getUserId()
+                    + ", Current user: " + currentUser.getUserId());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        product.setProductName(productName);
+        product.setDescription(description);
+        product.setPrice(new java.math.BigDecimal(price));
+        product.setQuantityAvailable(quantityAvailable);
+
+        // Handle category
+        Category categoryPayload = new Category();
+        categoryPayload.setCategoryName(categoryName);
+        product.setCategory(resolveCategory(categoryPayload));
+
+        // Handle image upload
+        if (image != null && !image.isEmpty()) {
+            try {
+                String uploadDir = "./uploads";
+                Path uploadPath = Paths.get(uploadDir);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                String originalFilename = image.getOriginalFilename();
+                String fileExtension = "";
+                if (originalFilename != null && originalFilename.contains(".")) {
+                    fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                }
+                String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+                Path filePath = uploadPath.resolve(uniqueFileName);
+                Files.copy(image.getInputStream(), filePath);
+
+                product.setImageUrl("/uploads/" + uniqueFileName);
+            } catch (IOException e) {
+                System.err.println("Error saving image: " + e.getMessage());
+                // Keep the existing image URL if upload fails
+            }
+        }
+
+        Product updated = productRepository.save(product);
+        return ResponseEntity.ok(updated);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(
             @PathVariable Integer id) {
@@ -167,7 +239,7 @@ public class ProductController {
         String userEmail = authentication.getName();
 
         User currentUser = userRepository.findByEmail(userEmail)
-                                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));

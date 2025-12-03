@@ -17,6 +17,7 @@ import ProductDetails from './pages/ProductDetails';
 import RecentlyViewed from './pages/RecentlyViewed';
 import AccountInformation from './pages/AccountInformation';
 import AddProduct from './pages/AddProduct';
+import EditProduct from './pages/EditProduct';
 import './App.css';
 
 function App() {
@@ -111,6 +112,10 @@ function App() {
           <Route 
             path="/add-product" 
             element={isAuthenticated ? <AddProduct /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/edit-product/:productId" 
+            element={isAuthenticated ? <EditProduct /> : <Navigate to="/login" />} 
           />
         </Routes>
       </div>
