@@ -55,10 +55,10 @@ const Dashboard = () => {
     filtered = filtered.filter(p => p.status !== 'sold');
     
     if (category !== 'All') {
-      // Handle both categoryName and category.categoryName formats
+      // Handle both categoryName and category.categoryName formats with case-insensitive matching
       filtered = filtered.filter(p => {
-        const productCategory = p.categoryName || p.category?.categoryName || p.category;
-        return productCategory === category;
+        const productCategory = (p.categoryName || p.category?.categoryName || p.category || '').toLowerCase();
+        return productCategory === category.toLowerCase();
       });
     }
     

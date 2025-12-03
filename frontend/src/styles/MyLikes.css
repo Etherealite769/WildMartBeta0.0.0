@@ -1,6 +1,6 @@
 .my-likes-page {
   min-height: 100vh;
-  background-color: #FFF9E6; /* Light gold background */
+  background: linear-gradient(135deg, #FFF9E6 0%, #FFFAED 100%);
   padding-bottom: 40px;
 }
 
@@ -11,12 +11,13 @@
 }
 
 .my-likes-container h2 {
-  font-size: 32px;
-  color: #800000; /* Maroon */
-  margin-bottom: 30px;
+  font-size: 36px;
+  color: #800000;
+  margin-bottom: 10px;
   position: relative;
   display: inline-block;
   padding-bottom: 10px;
+  font-weight: 700;
 }
 
 .my-likes-container h2::after {
@@ -24,10 +25,26 @@
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 60px;
-  height: 4px;
-  background: #FFBF00; /* Gold */
-  border-radius: 2px;
+  width: 80px;
+  height: 5px;
+  background: linear-gradient(90deg, #FFBF00, #FFA500);
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(255, 191, 0, 0.3);
+}
+
+.likes-count {
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 30px;
+  font-weight: 500;
+}
+
+.loading-likes {
+  text-align: center;
+  padding: 60px 20px;
+  color: #800000;
+  font-size: 18px;
+  font-weight: 500;
 }
 
 .liked-products-grid {
@@ -39,33 +56,105 @@
 
 .liked-product-card {
   position: relative;
+  transition: transform 0.3s ease;
+}
+
+.liked-product-card:hover {
+  transform: translateY(-4px);
 }
 
 .btn-unlike {
   width: 100%;
-  margin-top: 10px;
-  padding: 12px;
-  background-color: #800000; /* Maroon */
+  margin-top: 12px;
+  padding: 14px;
+  background: linear-gradient(135deg, #800000 0%, #660000 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(128, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-unlike svg {
+  width: 18px;
+  height: 18px;
 }
 
 .btn-unlike:hover {
-  background-color: #660000; /* Darker maroon */
+  background: linear-gradient(135deg, #660000 0%, #4d0000 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+  box-shadow: 0 6px 16px rgba(128, 0, 0, 0.35);
 }
 
 .btn-unlike:active {
   transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(128, 0, 0, 0.25);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  max-width: 500px;
+  margin: 40px auto;
+}
+
+.empty-icon {
+  margin-bottom: 24px;
+}
+
+.empty-icon svg {
+  width: 100px;
+  height: 100px;
+  color: #FFBF00;
+  opacity: 0.6;
+}
+
+.empty-state p {
+  font-size: 24px;
+  color: #800000;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.empty-state span {
+  display: block;
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 32px;
+}
+
+.empty-state .btn-primary {
+  background: linear-gradient(135deg, #800000 0%, #660000 100%);
+  color: white;
+  padding: 14px 32px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.empty-state .btn-primary:hover {
+  background: linear-gradient(135deg, #660000 0%, #4d0000 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(128, 0, 0, 0.35);
 }
 
 @media (max-width: 768px) {
