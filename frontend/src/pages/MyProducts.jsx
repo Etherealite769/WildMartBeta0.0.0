@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
+import ConfirmModal from '../components/ConfirmModal';
 import '../styles/MyProducts.css';
 
 const MyProducts = () => {
@@ -10,6 +12,13 @@ const MyProducts = () => {
   const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState({
+    title: '',
+    message: '',
+    onConfirm: null,
+    type: 'default'
+  });
 
   useEffect(() => {
     fetchMyProducts();
@@ -34,7 +43,19 @@ const MyProducts = () => {
   };
 
   const handleDelete = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
+    setConfirmModalData({
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product?',
+      onConfirm: () => {
+        setShowConfirmModal(false);
+        deleteProduct(productId);
+      },
+      type: 'danger'
+    });
+    setShowConfirmModal(true);
+  };
+
+  const deleteProduct = async (productId) => {
       try {
         const token = localStorage.getItem('token');
         await axios.delete(`http://localhost:8080/api/products/${productId}`, {
@@ -47,9 +68,8 @@ const MyProducts = () => {
         setSelectedProduct(null); // Close modal
       } catch (error) {
         console.error('Error deleting product:', error);
-        alert('Error deleting product. Please try again.');
+        toast.error('Error deleting product. Please try again.');
       }
-    }
   };
 
   const filteredProducts = products.filter(p => {
@@ -190,6 +210,14 @@ const MyProducts = () => {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title={confirmModalData.title}
+        message={confirmModalData.message}
+        onConfirm={confirmModalData.onConfirm}
+        onCancel={() => setShowConfirmModal(false)}
+        type={confirmModalData.type}
+      />
     </div>
   );
 };

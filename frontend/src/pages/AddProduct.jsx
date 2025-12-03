@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
+import ConfirmModal from '../components/ConfirmModal';
 import { supabase } from '../utils/supabase'; // Import Supabase client
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique filenames
 import '../styles/AddProduct.css';
@@ -17,6 +19,13 @@ const AddProduct = () => {
     images: [] // To store File objects
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState({
+    title: '',
+    message: '',
+    onConfirm: null,
+    type: 'default'
+  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -45,26 +54,34 @@ const AddProduct = () => {
 const handlePublish = async () => {
   // Validate required fields
   if (!productData.productName || !productData.category || !productData.price || !productData.stock) {
-    alert('Please fill in all required fields: Product Name, Category, Price, and Stock');
+    toast.error('Please fill in all required fields: Product Name, Category, Price, and Stock');
     return;
   }
 
   if (parseFloat(productData.price) <= 0) {
-    alert('Price must be greater than 0');
+    toast.error('Price must be greater than 0');
     return;
   }
 
   if (parseInt(productData.stock) < 0) {
-    alert('Stock cannot be negative');
+    toast.error('Stock cannot be negative');
     return;
   }
 
   // Show confirmation dialog
-  const isConfirmed = window.confirm('Are you sure you want to publish this product? This will make it visible to customers.');
-  
-  if (!isConfirmed) {
-    return; // User clicked "Cancel"
-  }
+  setConfirmModalData({
+    title: 'Publish Product',
+    message: 'Are you sure you want to publish this product? This will make it visible to customers.',
+    onConfirm: () => {
+      setShowConfirmModal(false);
+      publishProduct();
+    },
+    type: 'default'
+  });
+  setShowConfirmModal(true);
+};
+
+const publishProduct = async () => {
 
   setIsLoading(true);
 
@@ -120,7 +137,7 @@ const handlePublish = async () => {
 
   } catch (error) {
     console.error('Error publishing product:', error);
-    alert(`Error publishing product: ${error.message}. Please try again.`);
+    toast.error(`Error publishing product: ${error.message}. Please try again.`);
   } finally {
     setIsLoading(false);
   }
@@ -128,9 +145,16 @@ const handlePublish = async () => {
 
 
   const handleCancel = () => {
-    if (window.confirm('Are you sure you want to cancel? All unsaved changes will be lost.')) {
-      navigate('/my-products');
-    }
+    setConfirmModalData({
+      title: 'Cancel Changes',
+      message: 'Are you sure you want to cancel? All unsaved changes will be lost.',
+      onConfirm: () => {
+        setShowConfirmModal(false);
+        navigate('/my-products');
+      },
+      type: 'default'
+    });
+    setShowConfirmModal(true);
   };
 
   return (
@@ -317,6 +341,14 @@ const handlePublish = async () => {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title={confirmModalData.title}
+        message={confirmModalData.message}
+        onConfirm={confirmModalData.onConfirm}
+        onCancel={() => setShowConfirmModal(false)}
+        type={confirmModalData.type}
+      />
     </div>
   );
 };

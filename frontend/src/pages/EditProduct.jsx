@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
+import ConfirmModal from '../components/ConfirmModal';
 import '../styles/AddProduct.css';
 
 const EditProduct = () => {
@@ -19,6 +21,13 @@ const EditProduct = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState({
+    title: '',
+    message: '',
+    onConfirm: null,
+    type: 'default'
+  });
 
   useEffect(() => {
     fetchProductDetails();
@@ -72,7 +81,7 @@ const EditProduct = () => {
       console.error('Error response:', error.response?.data);
       console.error('Product ID:', productId);
       console.error('Full error:', error.message);
-      alert(`Error loading product details: ${error.response?.data?.message || error.message}. Please try again.`);
+      toast.error(`Error loading product details: ${error.response?.data?.message || error.message}. Please try again.`);
       navigate('/my-products');
     } finally {
       setIsLoading(false);
@@ -107,79 +116,134 @@ const EditProduct = () => {
   const handleUpdate = async () => {
     // Validate required fields
     if (!productData.productName || !productData.category || !productData.price || !productData.stock) {
-      alert('Please fill in all required fields: Product Name, Category, Price, and Stock');
+      toast.error('Please fill in all required fields: Product Name, Category, Price, and Stock');
       return;
     }
 
     if (parseFloat(productData.price) <= 0) {
-      alert('Price must be greater than 0');
+      toast.error('Price must be greater than 0');
       return;
     }
 
     if (parseInt(productData.stock) < 0) {
-      alert('Stock cannot be negative');
+      toast.error('Stock cannot be negative');
       return;
     }
 
     // Show confirmation dialog
-    const isConfirmed = window.confirm('Are you sure you want to update this product?');
-    
-    if (!isConfirmed) {
-      return;
-    }
+    setConfirmModalData({
+      title: 'Update Product',
+      message: 'Are you sure you want to update this product?',
+      onConfirm: () => {
+        setShowConfirmModal(false);
+        updateProduct();
+      },
+      type: 'default'
+    });
+    setShowConfirmModal(true);
+  };
 
+  const updateProduct = async () => {
     setIsSaving(true);
 
     try {
       const token = localStorage.getItem('token');
-      const formData = new FormData();
+      console.log('Authorization Token:', token);
       
-      formData.append('productName', productData.productName);
-      formData.append('categoryName', productData.category);
-      formData.append('description', productData.description);
-      formData.append('price', parseFloat(productData.price));
-      formData.append('quantityAvailable', parseInt(productData.stock));
-      formData.append('status', productData.status);
-
-      // Handle image upload - only append if a new image was selected
-      const imageInput = document.getElementById('image-upload');
-      if (imageInput && imageInput.files.length > 0) {
-        formData.append('image', imageInput.files[0]);
+      if (!token) {
+        toast.error('No authentication token found. Please log in again.');
+        navigate('/login');
+        return;
       }
 
-      // Use the multipart endpoint
-      const response = await axios.put(`http://localhost:8080/api/products/${productId}/multipart`, formData, {
+      // Check if token is expired
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const now = Date.now() / 1000;
+        if (payload.exp < now) {
+          console.log('Token expired, clearing and redirecting to login');
+          localStorage.removeItem('token');
+          toast.error('Your session has expired. Please log in again.');
+          navigate('/login');
+          return;
+        }
+      } catch (e) {
+        console.log('Invalid token format, clearing and redirecting to login');
+        localStorage.removeItem('token');
+        toast.error('Invalid session. Please log in again.');
+        navigate('/login');
+        return;
+      }
+      
+      // Use JSON endpoint with proper category object format
+      const updatePayload = {
+        productName: productData.productName,
+        category: {
+          categoryName: productData.category
+        },
+        description: productData.description,
+        price: parseFloat(productData.price),
+        quantityAvailable: parseInt(productData.stock),
+        status: productData.status
+      };
+
+      const response = await axios.put(`http://localhost:8080/api/products/${productId}`, updatePayload, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'application/json'
         }
       });
 
       console.log('Product updated:', response.data);
-      alert('Product updated successfully!');
+      toast.success('Product updated successfully!');
       navigate('/my-products');
 
     } catch (error) {
       console.error('Error updating product:', error);
       console.error('Error response:', error.response?.data);
-      alert(`Error updating product: ${error.response?.data?.message || error.message}. Please try again.`);
+      console.error('Error status:', error.response?.status);
+      
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else if (error.response?.status === 403) {
+        toast.error('You do not have permission to update this product.');
+      } else {
+        toast.error(`Error updating product: ${error.response?.data?.message || error.message}. Please try again.`);
+      }
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    if (window.confirm('Are you sure you want to cancel? All unsaved changes will be lost.')) {
-      navigate('/my-products');
-    }
+    setConfirmModalData({
+      title: 'Cancel Changes',
+      message: 'Are you sure you want to cancel? All unsaved changes will be lost.',
+      onConfirm: () => {
+        setShowConfirmModal(false);
+        navigate('/my-products');
+      },
+      type: 'default'
+    });
+    setShowConfirmModal(true);
   };
 
   const handleDelete = async () => {
-    const isConfirmed = window.confirm('Are you sure you want to delete this product? This action cannot be undone.');
-    
-    if (!isConfirmed) {
-      return;
-    }
+    setConfirmModalData({
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product? This action cannot be undone.',
+      onConfirm: () => {
+        setShowConfirmModal(false);
+        deleteProduct();
+      },
+      type: 'danger'
+    });
+    setShowConfirmModal(true);
+  };
+
+  const deleteProduct = async () => {
 
     setIsSaving(true);
 
@@ -192,13 +256,13 @@ const EditProduct = () => {
       });
 
       console.log('Product deleted successfully');
-      alert('Product deleted successfully!');
+      toast.success('Product deleted successfully!');
       navigate('/my-products');
 
     } catch (error) {
       console.error('Error deleting product:', error);
       console.error('Error response:', error.response?.data);
-      alert(`Error deleting product: ${error.response?.data?.message || error.message}. Please try again.`);
+      toast.error(`Error deleting product: ${error.response?.data?.message || error.message}. Please try again.`);
     } finally {
       setIsSaving(false);
     }
@@ -416,6 +480,14 @@ const EditProduct = () => {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title={confirmModalData.title}
+        message={confirmModalData.message}
+        onConfirm={confirmModalData.onConfirm}
+        onCancel={() => setShowConfirmModal(false)}
+        type={confirmModalData.type}
+      />
     </div>
   );
 };

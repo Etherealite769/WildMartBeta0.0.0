@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import '../styles/Cart.css';
 
@@ -28,6 +29,7 @@ const Cart = () => {
       setCartItems(response.data.items || []);
     } catch (error) {
       console.error('Error fetching cart:', error);
+      toast.error('Failed to load cart items. Please refresh the page.');
     } finally {
       setLoading(false);
     }
@@ -51,6 +53,15 @@ const Cart = () => {
       fetchCart();
     } catch (error) {
       console.error('Error updating quantity:', error);
+      
+      if (error.response?.status === 403) {
+        toast.error('Authorization failed. Your session may have expired. Please log in again.');
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
+      } else {
+        toast.error('Failed to update quantity. Please try again.');
+      }
     }
   };
 
@@ -62,6 +73,7 @@ const Cart = () => {
       fetchCart();
     } catch (error) {
       console.error('Error removing item:', error);
+      toast.error('Failed to remove item. Please try again.');
     }
   };
 
@@ -74,6 +86,7 @@ const Cart = () => {
       navigate('/success');
     } catch (error) {
       console.error('Error during checkout:', error);
+      toast.error('Checkout failed. Please try again.');
     }
   };
 

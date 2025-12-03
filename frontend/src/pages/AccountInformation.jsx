@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import '../styles/AccountInformation.css';
 import profilePlaceholder from '../assets/placeholder.png';
@@ -76,29 +77,37 @@ const AccountInformation = () => {
       };
 
       await axios.put('http://localhost:8080/api/user/account', updatePayload, config);
-      alert('Account information updated successfully!');
+      toast.success('Account information updated successfully!');
 
       // Handle password change if newPassword fields are filled
       if (newPassword || confirmNewPassword) {
         if (newPassword !== confirmNewPassword) {
-          alert('New password and confirm password do not match.');
+          toast.error('New password and confirm password do not match.');
           return;
         }
         if (newPassword.length < 6) { // Example: minimum password length
-          alert('Password must be at least 6 characters long.');
+          toast.error('Password must be at least 6 characters long.');
           return;
         }
         
         // Assuming a separate endpoint for password change
         await axios.post('http://localhost:8080/api/user/change-password', { newPassword }, config);
-        alert('Password updated successfully!');
+        toast.success('Password updated successfully!');
         setNewPassword('');
         setConfirmNewPassword('');
       }
 
     } catch (error) {
       console.error('Error updating account or password:', error);
-      alert('Failed to update account information or password.');
+      
+      if (error.response?.status === 403) {
+        toast.error('Authorization failed. Your session may have expired. Please log in again.');
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
+      } else {
+        toast.error('Failed to update account information or password.');
+      }
     }
   };
 
@@ -125,12 +134,12 @@ const AccountInformation = () => {
       localStorage.setItem('user', JSON.stringify(storedUser));
 
       setUserRole('SELLER');
-      alert('Congratulations! You are now a seller. You can now add and manage your products!');
+      toast.success('Congratulations! You are now a seller. You can now add and manage your products!');
       window.location.reload(); // Refresh to update navbar
     } catch (error) {
       const errorMessage = error.response?.data || error.message || 'Unknown error occurred';
       console.error('Error becoming a seller:', errorMessage);
-      alert('Failed to become a seller: ' + errorMessage);
+      toast.error('Failed to become a seller: ' + errorMessage);
     } finally {
       setLoading(false);
     }
