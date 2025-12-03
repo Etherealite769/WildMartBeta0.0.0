@@ -14,10 +14,7 @@ const MyProducts = () => {
   }, []);
 
   const fetchMyProducts = async () => {
-    let backendProducts = [];
-    let localProducts = [];
-
-    // Try to fetch from backend
+    // Fetch from backend
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get('http://localhost:8080/api/user/products', {
@@ -26,46 +23,23 @@ const MyProducts = () => {
           'Content-Type': 'application/json'
         }
       });
-      backendProducts = response.data;
+      setProducts(response.data);
     } catch (error) {
-      console.warn('Could not fetch from backend, using localStorage:', error);
+      console.error('Error fetching products from backend:', error);
+      // Optionally, set products to empty array or show an error message to the user
+      setProducts([]); 
     }
-
-    // Always fetch from localStorage as fallback
-    try {
-      localProducts = JSON.parse(localStorage.getItem('myProducts') || '[]');
-    } catch (error) {
-      console.error('Error reading from localStorage:', error);
-    }
-
-    // Combine both sources, remove duplicates by ID
-    const allProducts = [...backendProducts, ...localProducts];
-    const uniqueProducts = allProducts.filter((product, index, self) =>
-      index === self.findIndex(p => p.id === product.id)
-    );
-
-    setProducts(uniqueProducts);
   };
 
   const handleDelete = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        // Try to delete from backend first
         const token = localStorage.getItem('token');
-        try {
-          await axios.delete(`http://localhost:8080/api/products/${productId}`, {
-            headers: { 
-              'Authorization': `Bearer ${token}` 
-            }
-          });
-        } catch (apiError) {
-          console.warn('Backend delete failed, deleting from localStorage:', apiError);
-        }
-
-        // Always delete from localStorage
-        const existingProducts = JSON.parse(localStorage.getItem('myProducts') || '[]');
-        const updatedProducts = existingProducts.filter(product => product.id !== productId);
-        localStorage.setItem('myProducts', JSON.stringify(updatedProducts));
+        await axios.delete(`http://localhost:8080/api/products/${productId}`, {
+          headers: { 
+            'Authorization': `Bearer ${token}` 
+          }
+        });
 
         fetchMyProducts(); // Refresh the list
       } catch (error) {
@@ -139,20 +113,20 @@ const MyProducts = () => {
             </div>
           ) : (
             filteredProducts.map(product => (
-              <div key={product.id} className="product-item">
+              <div key={product.productId} className="product-item">
                 <div className="product-image">
                   <img 
-                    src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder.png'} 
-                    alt={product.name} 
+                    src={product.imageUrl || '/placeholder.png'} 
+                    alt={product.productName} 
                     onError={(e) => {
                       e.target.src = '/placeholder.png';
                     }}
                   />
                 </div>
                 <div className="product-details">
-                  <h3>{product.name}</h3>
+                  <h3>{product.productName}</h3>
                   <p className="product-price">₱{product.price ? parseFloat(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</p>
-                  <p className="product-stock">Stock: {product.stock || 0}</p>
+                  <p className="product-stock">Quantity: {product.quantityAvailable || 0}</p>
                   <span className={`product-status ${getStatusClass(product.status)}`}>
                     {product.status ? product.status.charAt(0).toUpperCase() + product.status.slice(1) : 'Draft'}
                   </span>
@@ -160,13 +134,13 @@ const MyProducts = () => {
                 <div className="product-actions">
                   <button 
                     className="btn-edit"
-                    onClick={() => navigate(`/edit-product/${product.id}`)}
+                    onClick={() => navigate(`/edit-product/${product.productId}`)}
                   >
                     Edit
                   </button>
                   <button 
                     className="btn-delete"
-                    onClick={() => handleDelete(product.id)}
+                    onClick={() => handleDelete(product.productId)}
                   >
                     Delete
                   </button>
