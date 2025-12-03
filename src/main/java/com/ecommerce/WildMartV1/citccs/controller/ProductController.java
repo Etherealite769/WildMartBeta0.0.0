@@ -3,6 +3,7 @@ package com.ecommerce.WildMartV1.citccs.controller;
 import com.ecommerce.WildMartV1.citccs.model.Category;
 import com.ecommerce.WildMartV1.citccs.model.Product;
 import com.ecommerce.WildMartV1.citccs.model.User;
+import com.ecommerce.WildMartV1.citccs.dto.ProductDTO; // Import ProductDTO
 import com.ecommerce.WildMartV1.citccs.repository.CategoryRepository;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
 import com.ecommerce.WildMartV1.citccs.service.UserService;
@@ -14,13 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.core.env.Environment; // Import Environment
-import java.io.IOException; // Import IOException
-import java.nio.file.Files; // Import Files
-import java.nio.file.Path; // Import Path
-import java.nio.file.Paths; // Import Paths
-import java.util.UUID; // Import UUID
 
-import org.springframework.web.multipart.MultipartFile; // Import MultipartFile
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
@@ -88,13 +83,7 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(
-            @RequestParam("productName") String productName,
-            @RequestParam("categoryName") String categoryName,
-            @RequestParam(value = "description", required = false) String description,
-            @RequestParam("price") String price, // Use String to parse BigDecimal manually
-            @RequestParam("quantityAvailable") Integer quantityAvailable,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
+    public ResponseEntity<Product> createProduct(@RequestBody ProductDTO productDTO) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -107,44 +96,17 @@ public class ProductController {
 
         Product product = new Product();
         product.setSeller(seller);
-        product.setProductName(productName);
-        product.setDescription(description);
-        product.setPrice(new java.math.BigDecimal(price)); // Parse price
-        product.setQuantityAvailable(quantityAvailable);
+        product.setProductName(productDTO.getProductName());
+        product.setDescription(productDTO.getDescription());
+        product.setPrice(productDTO.getPrice());
+        product.setQuantityAvailable(productDTO.getQuantityAvailable());
         product.setStatus("active"); // Default status
+        product.setImageUrl(productDTO.getImageUrl()); // Set the image URL from DTO
 
         // Handle category: Create a dummy Category object to pass to resolveCategory
         Category categoryPayload = new Category();
-        categoryPayload.setCategoryName(categoryName);
+        categoryPayload.setCategoryName(productDTO.getCategoryName());
         product.setCategory(resolveCategory(categoryPayload));
-
-        // Handle image upload (for now, just set the filename as imageUrl)
-        if (image != null && !image.isEmpty()) {
-            // Save the image file to the uploads directory
-            try {
-                String uploadDir = "./uploads";
-                Path uploadPath = Paths.get(uploadDir);
-                if (!Files.exists(uploadPath)) {
-                    Files.createDirectories(uploadPath);
-                }
-                String originalFilename = image.getOriginalFilename();
-                String fileExtension = "";
-                if (originalFilename != null && originalFilename.contains(".")) {
-                    fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-                }
-                String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
-                Path filePath = uploadPath.resolve(uniqueFileName);
-                Files.copy(image.getInputStream(), filePath);
-
-                // Set the imageUrl to the path relative to the static resource handler
-                product.setImageUrl("/uploads/" + uniqueFileName);
-            } catch (IOException e) {
-                System.err.println("Error saving image: " + e.getMessage());
-                product.setImageUrl("/placeholder.png"); // Fallback in case of error
-            }
-        } else {
-            product.setImageUrl("/placeholder.png"); // Default or placeholder image
-        }
 
         Product saved = productRepository.save(product);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
@@ -187,83 +149,7 @@ public class ProductController {
         Product updated = productRepository.save(product);
         return ResponseEntity.ok(updated);
     }
-
-    @PutMapping("/{id}/multipart")
-    public ResponseEntity<Product> updateProductMultipart(
-            @PathVariable Integer id,
-            @RequestParam("productName") String productName,
-            @RequestParam("categoryName") String categoryName,
-            @RequestParam(value = "description", required = false) String description,
-            @RequestParam("price") String price,
-            @RequestParam("quantityAvailable") Integer quantityAvailable,
-            @RequestParam(value = "status", required = false) String status,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            System.err.println("Authentication failed: authentication is null or not authenticated");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        String userEmail = authentication.getName();
-        System.out.println("User email from auth: " + userEmail);
-
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
-
-        System.out.println("Current user ID: " + currentUser.getUserId());
-
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-
-        System.out.println("Product seller ID: " + product.getSeller().getUserId());
-
-        if (!product.getSeller().getUserId().equals(currentUser.getUserId())) {
-            System.err.println("User ID mismatch! Product seller: " + product.getSeller().getUserId()
-                    + ", Current user: " + currentUser.getUserId());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-
-        product.setProductName(productName);
-        product.setDescription(description);
-        product.setPrice(new java.math.BigDecimal(price));
-        product.setQuantityAvailable(quantityAvailable);
-
-        if (status != null && !status.isEmpty()) {
-            product.setStatus(status);
-        }
-
-        // Handle category
-        Category categoryPayload = new Category();
-        categoryPayload.setCategoryName(categoryName);
-        product.setCategory(resolveCategory(categoryPayload));
-
-        // Handle image upload
-        if (image != null && !image.isEmpty()) {
-            try {
-                String uploadDir = "./uploads";
-                Path uploadPath = Paths.get(uploadDir);
-                if (!Files.exists(uploadPath)) {
-                    Files.createDirectories(uploadPath);
-                }
-                String originalFilename = image.getOriginalFilename();
-                String fileExtension = "";
-                if (originalFilename != null && originalFilename.contains(".")) {
-                    fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-                }
-                String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
-                Path filePath = uploadPath.resolve(uniqueFileName);
-                Files.copy(image.getInputStream(), filePath);
-
-                product.setImageUrl("/uploads/" + uniqueFileName);
-            } catch (IOException e) {
-                System.err.println("Error saving image: " + e.getMessage());
-                // Keep the existing image URL if upload fails
-            }
-        }
-
-        Product updated = productRepository.save(product);
-        return ResponseEntity.ok(updated);
-    }
+    // The updateProductMultipart method is removed as it's no longer needed since frontend now sends imageUrl directly.
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(

@@ -2,17 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
+import { supabase } from '../utils/supabase'; // Import Supabase client
+import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique filenames
 import '../styles/AddProduct.css';
 
 const AddProduct = () => {
   const navigate = useNavigate();
   const [productData, setProductData] = useState({
     productName: '',
-    category: '', 
+    category: '',
     description: '',
     price: '',
     stock: '', // Changed to 'stock' as per user feedback
-    images: [] 
+    images: [] // To store File objects
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,11 +28,10 @@ const AddProduct = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    const imageUrls = files.map(file => URL.createObjectURL(file));
     
     setProductData(prev => ({
       ...prev,
-      images: [...prev.images, ...imageUrls]
+      images: [...prev.images, ...files] // Store File objects directly
     }));
   };
 
@@ -69,25 +70,48 @@ const handlePublish = async () => {
 
   try {
     const token = localStorage.getItem('token');
-    const formData = new FormData();
     
-    formData.append('productName', productData.productName);
-    formData.append('categoryName', productData.category); // Backend expects categoryName
-    formData.append('description', productData.description);
-    formData.append('price', parseFloat(productData.price));
-    formData.append('quantityAvailable', parseInt(productData.stock)); // Send as quantityAvailable to backend
-    formData.append('status', 'active');
+    let imageUrl = '';
+    if (productData.images.length > 0) {
+      const imageFile = productData.images[0];
+      // Generate a unique filename for Supabase storage
+      const fileName = `${uuidv4()}-${imageFile.name}`;
+      const filePath = `products/${fileName}`; // Folder structure within the bucket
 
-    // Only append the first image if available, as the backend currently expects a single imageUrl
-    const imageInput = document.getElementById('image-upload');
-    if (imageInput.files.length > 0) {
-      formData.append('image', imageInput.files[0]); // Changed from 'images' to 'image' for single file upload
+      // Upload image to Supabase storage bucket "Products Image"
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, imageFile, {
+          cacheControl: '3600', // Cache for 1 hour
+          upsert: false // Do not overwrite if file exists
+        });
+
+      if (error) {
+        throw new Error('Supabase image upload failed: ' + error.message);
+      }
+
+      // Get the public URL of the uploaded image
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      imageUrl = publicUrlData.publicUrl;
     }
 
-    const response = await axios.post('http://localhost:8080/api/products', formData, {
+    const productDataToSend = {
+      productName: productData.productName,
+      categoryName: productData.category,
+      description: productData.description,
+      price: parseFloat(productData.price),
+      quantityAvailable: parseInt(productData.stock),
+      status: 'active',
+      imageUrl: imageUrl // Append the Supabase URL
+    };
+    
+    const response = await axios.post('http://localhost:8080/api/products', productDataToSend, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'application/json' // Change to application/json as we're sending URL now, not multipart file
       }
     });
 
@@ -114,7 +138,7 @@ const handlePublish = async () => {
       <Navbar />
       <div className="add-product-main">
         <div className="add-product-header">
-          <h2>Add New Product</h2>
+          <h3>Add New Product</h3>
         </div>
         <div className="product-form-container">
           <div className="product-form">
@@ -215,7 +239,7 @@ const handlePublish = async () => {
                     <div className="image-preview-grid">
                       {productData.images.map((image, index) => (
                         <div key={index} className="image-preview-item">
-                          <img src={image} alt={`Upload ${index + 1}`} />
+                          <img src={URL.createObjectURL(image)} alt={`Upload ${index + 1}`} />
                           <button 
                             type="button" 
                             className="remove-image-btn"
@@ -256,7 +280,7 @@ const handlePublish = async () => {
               <div className="preview-image-section">
                 {productData.images.length > 0 ? (
                   <div className="preview-main-image">
-                    <img src={productData.images[0]} alt="Product preview" />
+                    <img src={URL.createObjectURL(productData.images[0])} alt="Product preview" />
                   </div>
                 ) : (
                   <div className="preview-image-placeholder">
@@ -268,7 +292,7 @@ const handlePublish = async () => {
                   <div className="preview-thumbnails">
                     {productData.images.slice(1).map((image, index) => (
                       <div key={index + 1} className="preview-thumbnail">
-                        <img src={image} alt={`Thumbnail ${index + 2}`} />
+                        <img src={URL.createObjectURL(image)} alt={`Thumbnail ${index + 2}`} />
                       </div>
                     ))}
                   </div>
