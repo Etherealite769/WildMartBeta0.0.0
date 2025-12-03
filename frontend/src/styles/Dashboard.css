@@ -106,9 +106,10 @@
 /* Filter Buttons */
 .filter-buttons {
   display: flex;
-  gap: 40px;
+  gap: 12px;
   margin-bottom: 30px;
   flex-wrap: wrap;
+  padding: 4px 0;
 }
 
 .filter-btn {
@@ -145,10 +146,20 @@
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 200px));
-  gap: 12px;
-  padding: 10px 0;
-  justify-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+  padding: 20px 0;
+  justify-content: center;
+}
+
+.products-grid:empty::after {
+  content: 'No products found';
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: #800000;
+  font-size: 16px;
+  opacity: 0.7;
 }
 
 /* Loading state */
@@ -204,9 +215,8 @@
   }
 
   .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 200px));
-    gap: 12px;
-    justify-content: start;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
   }
 
   .filter-buttons {
@@ -225,8 +235,8 @@
   }
 
   .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 
   .filter-btn {

@@ -4,11 +4,13 @@ import com.ecommerce.WildMartV1.citccs.dto.UserDTO;
 import com.ecommerce.WildMartV1.citccs.model.Like;
 import com.ecommerce.WildMartV1.citccs.model.Product;
 import com.ecommerce.WildMartV1.citccs.model.User;
+import com.ecommerce.WildMartV1.citccs.repository.LikeRepository;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
 import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +24,7 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final LikeRepository likeRepository;
     
     public User getUserById(Integer userId) {
         return userRepository.findById(userId)
@@ -88,32 +91,31 @@ public class UserService {
                 .collect(Collectors.toCollection(HashSet::new));
     }
     
+    @Transactional
     public void likeProduct(Integer userId, Integer productId) {
         User user = getUserById(userId);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        boolean alreadyLiked = user.getLikes().stream()
-                .anyMatch(like -> like.getProduct().getProductId().equals(productId));
-
-        if (!alreadyLiked) {
+        // Check if already liked using repository
+        if (!likeRepository.existsByUserAndProduct(user, product)) {
             Like like = new Like(user, product);
-            user.getLikes().add(like);
-            product.getLikes().add(like);
-            userRepository.save(user);
-            productRepository.save(product);
+            likeRepository.save(like);
+            log.info("User {} liked product {}", userId, productId);
+        } else {
+            log.info("User {} already liked product {}", userId, productId);
         }
     }
 
+    @Transactional
     public void unlikeProduct(Integer userId, Integer productId) {
         User user = getUserById(userId);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        user.getLikes().removeIf(like -> like.getProduct().getProductId().equals(productId));
-        product.getLikes().removeIf(like -> like.getUser().getUserId().equals(userId));
-        userRepository.save(user);
-        productRepository.save(product);
+        // Delete the like using repository
+        likeRepository.deleteByUserAndProduct(user, product);
+        log.info("User {} unliked product {}", userId, productId);
     }
 
     private UserDTO convertToDTO(User user) {

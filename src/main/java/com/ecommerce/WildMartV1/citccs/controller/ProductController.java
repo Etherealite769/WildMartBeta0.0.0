@@ -21,7 +21,11 @@ import java.nio.file.Paths; // Import Paths
 import java.util.UUID; // Import UUID
 
 import org.springframework.web.multipart.MultipartFile; // Import MultipartFile
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
@@ -44,9 +48,36 @@ public class ProductController {
     private Environment env; // Inject Environment
 
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> getAllProducts() {
         List<Product> products = productRepository.findAll();
-        return ResponseEntity.ok(products);
+        List<Map<String, Object>> productList = products.stream().map(product -> {
+            Map<String, Object> productMap = new HashMap<>();
+            productMap.put("id", product.getProductId());
+            productMap.put("productId", product.getProductId());
+            productMap.put("productName", product.getProductName());
+            productMap.put("description", product.getDescription());
+            productMap.put("price", product.getPrice());
+            productMap.put("quantityAvailable", product.getQuantityAvailable());
+            productMap.put("imageUrl", product.getImageUrl());
+            productMap.put("status", product.getStatus());
+            productMap.put("viewCount", product.getViewCount());
+            productMap.put("likeCount", product.getLikeCount());
+            productMap.put("averageRating", product.getAverageRating());
+            productMap.put("createdAt", product.getCreatedAt());
+            productMap.put("updatedAt", product.getUpdatedAt());
+            // Add category name
+            if (product.getCategory() != null) {
+                productMap.put("categoryName", product.getCategory().getCategoryName());
+            }
+            // Add seller info
+            if (product.getSeller() != null) {
+                productMap.put("sellerName", product.getSeller().getFullName() != null ? product.getSeller().getFullName() : product.getSeller().getUsername());
+                productMap.put("sellerEmail", product.getSeller().getEmail());
+            }
+            return productMap;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(productList);
     }
 
     @GetMapping("/{id}")
