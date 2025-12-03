@@ -2,6 +2,7 @@ package com.ecommerce.WildMartV1.citccs.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonManagedReference; // Add this import
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -56,6 +57,7 @@ public class User {
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     @OneToMany(mappedBy = "seller", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference // Add this annotation
     private List<Product> products = new ArrayList<>();
 
     @OneToMany(mappedBy = "buyer", cascade = CascadeType.ALL)

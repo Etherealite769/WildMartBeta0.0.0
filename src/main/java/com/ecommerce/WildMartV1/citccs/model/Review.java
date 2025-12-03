@@ -1,5 +1,6 @@
 package com.ecommerce.WildMartV1.citccs.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -14,6 +15,7 @@ public class Review {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonBackReference
     private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

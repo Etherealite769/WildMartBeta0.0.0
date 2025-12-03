@@ -1,6 +1,7 @@
 package com.ecommerce.WildMartV1.citccs.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonManagedReference; // Add this import
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class Category {
     private Boolean active = Boolean.TRUE;
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference // Add this annotation
     private List<Product> products = new ArrayList<>();
 
     public Category() {

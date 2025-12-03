@@ -13,6 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.core.env.Environment; // Import Environment
+import java.io.IOException; // Import IOException
+import java.nio.file.Files; // Import Files
+import java.nio.file.Path; // Import Path
+import java.nio.file.Paths; // Import Paths
+import java.util.UUID; // Import UUID
 
 import org.springframework.web.multipart.MultipartFile; // Import MultipartFile
 import java.util.List;
@@ -33,6 +39,9 @@ public class ProductController {
 
     @Autowired
     private UserRepository userRepository; // Inject UserRepository
+
+    @Autowired
+    private Environment env; // Inject Environment
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
@@ -80,11 +89,30 @@ public class ProductController {
 
         // Handle image upload (for now, just set the filename as imageUrl)
         if (image != null && !image.isEmpty()) {
-            // In a real application, you would save the file to storage (e.g., S3, local disk)
-            // and then store the URL/path. For this task, we'll just use the filename.
-            product.setImageUrl(image.getOriginalFilename());
+            // Save the image file to the uploads directory
+            try {
+                String uploadDir = "./uploads";
+                Path uploadPath = Paths.get(uploadDir);
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                String originalFilename = image.getOriginalFilename();
+                String fileExtension = "";
+                if (originalFilename != null && originalFilename.contains(".")) {
+                    fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                }
+                String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+                Path filePath = uploadPath.resolve(uniqueFileName);
+                Files.copy(image.getInputStream(), filePath);
+
+                // Set the imageUrl to the path relative to the static resource handler
+                product.setImageUrl("/uploads/" + uniqueFileName);
+            } catch (IOException e) {
+                System.err.println("Error saving image: " + e.getMessage());
+                product.setImageUrl("/placeholder.png"); // Fallback in case of error
+            }
         } else {
-            product.setImageUrl("placeholder.png"); // Default or placeholder image
+            product.setImageUrl("/placeholder.png"); // Default or placeholder image
         }
 
         Product saved = productRepository.save(product);

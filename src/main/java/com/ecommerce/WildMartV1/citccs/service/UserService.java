@@ -74,8 +74,11 @@ public class UserService {
     }
     
     public List<Product> getUserProducts(Integer userId) {
+        log.info("Attempting to retrieve products for userId: {}", userId);
         User user = getUserById(userId);
-        return productRepository.findBySeller(user);
+        List<Product> products = productRepository.findBySeller(user);
+        log.info("Found {} products for user: {}", products.size(), userId);
+        return products;
     }
     
     public Set<Product> getLikedProducts(Integer userId) {

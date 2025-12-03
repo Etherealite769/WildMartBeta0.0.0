@@ -2,6 +2,7 @@ package com.ecommerce.WildMartV1.citccs.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonBackReference; // Add this import
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -21,10 +22,12 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "seller_id", nullable = false)
+    @JsonBackReference // Add this annotation
     private User seller;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "category_id", nullable = false)
+    @JsonBackReference // Add this annotation for category relationship
     private Category category;
 
     @Column(name = "product_name", nullable = false)
@@ -37,28 +40,44 @@ public class Product {
     private BigDecimal price;
 
     @Column(name = "quantity_available", nullable = false)
-    private Integer quantityAvailable = 0;
+    private Integer quantityAvailable; // Removed default initialization
 
     @Column(name = "image_url")
     private String imageUrl;
 
     @Column(nullable = false)
-    private String status = "active";
+    private String status; // Removed default initialization
 
     @Column(name = "view_count", nullable = false)
-    private Integer viewCount = 0;
+    private Integer viewCount; // Removed default initialization
 
     @Column(name = "like_count", nullable = false)
-    private Integer likeCount = 0;
+    private Integer likeCount; // Removed default initialization
 
     @Column(name = "average_rating")
-    private Double averageRating = 0.0;
+    private Double averageRating; // Removed default initialization
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt; // Removed default initialization
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt; // Removed default initialization
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        if (this.viewCount == null) this.viewCount = 0;
+        if (this.likeCount == null) this.likeCount = 0;
+        if (this.averageRating == null) this.averageRating = 0.0;
+        if (this.status == null) this.status = "active"; // Set default if not provided
+        if (this.quantityAvailable == null) this.quantityAvailable = 0; // Set default if not provided
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
