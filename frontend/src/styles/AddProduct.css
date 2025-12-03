@@ -9,7 +9,7 @@
   min-height: 100vh;
   background-color: var(--background-color);
   padding: 40px 20px; /* Increased top/bottom padding */
-  padding-top: 100px; /* Account for fixed navbar */
+  padding-top: 30px; /* Account for fixed navbar */
 }
 
 .product-form-container {
@@ -17,7 +17,7 @@
   grid-template-columns: 3fr 2fr; /* Slightly adjust ratio for form vs preview */
   gap: 40px; /* Increased gap */
   max-width: 1200px;
-  margin: 30px auto 0 auto; /* Added top margin */
+  margin: 10px auto 0 auto; /* Adjusted top margin */
 }
 
 .product-form, .product-preview {
@@ -107,7 +107,7 @@
 
 .category-dropdown select {
   color: var(--text-color);
-  background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'><path fill='%2334495E' d='M2 0L0 2h4zm0 5L0 3h4z'/></svg>");
+  background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 4 5\'><path fill=\'%2334495E\' d=\'M2 0L0 2h4zm0 5L0 3h4z\'/></svg>");
   background-color: var(--background-color);
   border: 1px solid rgba(0,0,0,0.1);
 }
@@ -517,12 +517,12 @@
   margin-bottom: 40px; /* Space below the header */
 }
 
-.add-product-header h2 {
+.add-product-header h3 {
   color: var(--primary-color);
-  font-size: 2.2rem; /* Larger font size */
+  font-size: 2rem; /* Larger font size */
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   margin: 0;
 }
 
