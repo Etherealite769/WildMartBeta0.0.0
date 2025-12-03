@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import '../styles/EditProfile.css';
 
@@ -62,13 +63,21 @@ const EditProfile = () => {
 
       await axios.put('http://localhost:8080/api/user/profile', formDataToSend, {
         headers: { 
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data'
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
       navigate('/profile');
     } catch (error) {
       console.error('Error updating profile:', error);
+      
+      if (error.response?.status === 403) {
+        toast.error('Authorization failed. Your session may have expired. Please log in again.');
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
+      } else {
+        toast.error('Failed to update profile. Please try again.');
+      }
     }
   };
 

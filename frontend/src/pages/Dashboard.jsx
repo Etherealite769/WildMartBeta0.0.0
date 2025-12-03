@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
 import '../styles/Dashboard.css';
@@ -34,6 +35,7 @@ const Dashboard = () => {
       setFilteredProducts(activProducts);
     } catch (error) {
       console.error('Error fetching products:', error.response?.data || error.message);
+      toast.error('Failed to load products. Please refresh the page.');
     }
   };
 

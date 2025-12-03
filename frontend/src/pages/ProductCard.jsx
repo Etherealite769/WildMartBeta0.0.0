@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import '../styles/ProductCard.css';
  
 const ProductCard = ({ product, onClick }) => {
@@ -18,7 +19,7 @@ const ProductCard = ({ product, onClick }) => {
     e.stopPropagation(); // Prevent card click from firing
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Please log in to like products.');
+      toast.error('Please log in to like products.');
       return;
     }
  
@@ -39,7 +40,7 @@ const ProductCard = ({ product, onClick }) => {
       // if it depends on the like status, or if there's a global state management.
     } catch (error) {
       console.error('Error toggling like status:', error.response?.data || error.message);
-      alert('Failed to update like status. Please try again.');
+      toast.error('Failed to update like status. Please try again.');
     }
   };
  
@@ -62,7 +63,7 @@ const ProductCard = ({ product, onClick }) => {
               className={`like-icon ${isLiked ? 'liked' : ''}`}
               onClick={handleLikeToggle}
 >
-              {isLiked ? ❤️' : '♡'}
+              {isLiked ? '❤️' : '♡'}
 </span>
 <span className="options-icon">•••</span> {/* Placeholder for options icon */}
 </div>

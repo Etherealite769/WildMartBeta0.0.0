@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.core.env.Environment; // Import Environment
 
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/products")
 @CrossOrigin(origins = "http://localhost:3000")
+@Slf4j
 public class ProductController {
 
     @Autowired
@@ -113,23 +115,53 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(
+    @Transactional
+    public ResponseEntity<?> updateProduct(
             @PathVariable Integer id,
             @RequestBody Product productDetails) {
+        log.info("Updating product with id: {}", id);
+        
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String authName = authentication != null ? authentication.getName() : null;
+        log.info("Authentication name: {}", authName);
+        
+        // Check if user is properly authenticated (not anonymous)
+        if (authentication == null || authName == null || "anonymousUser".equals(authName)) {
+            log.warn("Unauthorized access attempt for product update: {}", id);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Not authenticated", "message", "Please log in to update products"));
         }
-        String userEmail = authentication.getName();
+        String userEmail = authName;
 
         User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+                .orElse(null);
+        
+        if (currentUser == null) {
+            log.warn("User not found with email: {}", userEmail);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "User not found", "message", "User with email " + userEmail + " not found"));
+        }
+        log.info("Current user: {} (ID: {})", currentUser.getEmail(), currentUser.getUserId());
 
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Product product = productRepository.findByIdWithSeller(id)
+                .orElse(null);
+        
+        if (product == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Product not found", "message", "Product with id " + id + " not found"));
+        }
+        
+        Integer sellerId = product.getSeller() != null ? product.getSeller().getUserId() : null;
+        log.info("Product seller ID: {}, Current user ID: {}", sellerId, currentUser.getUserId());
 
-        if (!product.getSeller().getUserId().equals(currentUser.getUserId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        if (sellerId == null || !sellerId.equals(currentUser.getUserId())) {
+            log.warn("User {} (ID: {}) attempted to update product {} owned by seller ID: {}", 
+                    userEmail, currentUser.getUserId(), id, sellerId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Permission denied", 
+                            "message", "You can only update your own products",
+                            "yourUserId", currentUser.getUserId(),
+                            "productSellerId", sellerId != null ? sellerId : "null"));
         }
 
         product.setProductName(productDetails.getProductName());
@@ -147,9 +179,63 @@ public class ProductController {
         }
 
         Product updated = productRepository.save(product);
+        log.info("Product {} updated successfully", id);
         return ResponseEntity.ok(updated);
     }
-    // The updateProductMultipart method is removed as it's no longer needed since frontend now sends imageUrl directly.
+    
+    @PutMapping("/{id}/multipart")
+    @Transactional
+    public ResponseEntity<?> updateProductMultipart(
+            @PathVariable Integer id,
+            @RequestParam("productName") String productName,
+            @RequestParam("categoryName") String categoryName,
+            @RequestParam("description") String description,
+            @RequestParam("price") Double price,
+            @RequestParam("quantityAvailable") Integer quantityAvailable,
+            @RequestParam("status") String status,
+            @RequestParam(value = "image", required = false) org.springframework.web.multipart.MultipartFile image) {
+        
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String userEmail = authentication.getName();
+        
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        Product product = productRepository.findByIdWithSeller(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        
+        if (!product.getSeller().getUserId().equals(user.getUserId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        // Update product fields
+        product.setProductName(productName);
+        product.setDescription(description);
+        product.setPrice(java.math.BigDecimal.valueOf(price));
+        product.setQuantityAvailable(quantityAvailable);
+        product.setStatus(status);
+        
+        // Handle category
+        Category categoryPayload = new Category();
+        categoryPayload.setCategoryName(categoryName);
+        product.setCategory(resolveCategory(categoryPayload));
+        
+        // Handle image upload if provided
+        if (image != null && !image.isEmpty()) {
+            try {
+                String imageUrl = env.getProperty("supabase.public.url") + "/storage/v1/object/public/product-images/" + image.getOriginalFilename();
+                product.setImageUrl(imageUrl);
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body("Failed to process image: " + e.getMessage());
+            }
+        }
+        
+        Product updated = productRepository.save(product);
+        return ResponseEntity.ok(updated);
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(
@@ -163,7 +249,7 @@ public class ProductController {
         User currentUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
 
-        Product product = productRepository.findById(id)
+        Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         if (!product.getSeller().getUserId().equals(currentUser.getUserId())) {

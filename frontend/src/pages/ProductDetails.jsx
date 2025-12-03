@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
+import ConfirmModal from '../components/ConfirmModal';
 import '../styles/ProductDetails.css';
 
 const ProductDetails = () => {
@@ -14,6 +16,13 @@ const ProductDetails = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState({
+    title: '',
+    message: '',
+    onConfirm: null,
+    type: 'default'
+  });
 
   useEffect(() => {
     fetchProduct();
@@ -72,10 +81,10 @@ const ProductDetails = () => {
         { productId: id, quantity },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
-      alert('Product added to cart!');
+      toast.success('Product added to cart!');
     } catch (error) {
       console.error('Error adding to cart:', error);
-      alert('Failed to add to cart. Please try again.');
+      toast.error('Failed to add to cart. Please try again.');
     } finally {
       setAddingToCart(false);
     }
@@ -99,16 +108,24 @@ const ProductDetails = () => {
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      alert('Failed to update like status. Please try again.');
+      toast.error('Failed to update like status. Please try again.');
     }
   };
 
   const handleDelete = async () => {
-    const isConfirmed = window.confirm('Are you sure you want to delete this product? This action cannot be undone.');
-    
-    if (!isConfirmed) {
-      return;
-    }
+    setConfirmModalData({
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product? This action cannot be undone.',
+      onConfirm: () => {
+        setShowConfirmModal(false);
+        deleteProduct();
+      },
+      type: 'danger'
+    });
+    setShowConfirmModal(true);
+  };
+
+  const deleteProduct = async () => {
 
     setIsDeleting(true);
 
@@ -120,12 +137,12 @@ const ProductDetails = () => {
         }
       });
 
-      alert('Product deleted successfully!');
+      toast.success('Product deleted successfully!');
       navigate('/my-products');
 
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert(`Error deleting product: ${error.response?.data?.message || error.message}`);
+      toast.error(`Error deleting product: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsDeleting(false);
     }
@@ -420,6 +437,14 @@ const ProductDetails = () => {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title={confirmModalData.title}
+        message={confirmModalData.message}
+        onConfirm={confirmModalData.onConfirm}
+        onCancel={() => setShowConfirmModal(false)}
+        type={confirmModalData.type}
+      />
     </div>
   );
 };
