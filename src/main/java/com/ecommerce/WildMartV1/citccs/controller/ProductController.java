@@ -7,9 +7,14 @@ import com.ecommerce.WildMartV1.citccs.repository.CategoryRepository;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
 import com.ecommerce.WildMartV1.citccs.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.multipart.MultipartFile; // Import MultipartFile
 import java.util.List;
 
 @RestController
@@ -24,7 +29,10 @@ public class ProductController {
     private CategoryRepository categoryRepository;
 
     @Autowired
-    private UserService userService;
+    private UserService userService; // Keep for other methods if they rely on it
+
+    @Autowired
+    private UserRepository userRepository; // Inject UserRepository
 
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
@@ -41,27 +49,66 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<Product> createProduct(
-            @RequestHeader("Authorization") String token,
-            @RequestBody Product product) {
-        Integer userId = extractUserIdFromToken(token);
-        User seller = userService.getUserById(userId);
+            @RequestParam("productName") String productName,
+            @RequestParam("categoryName") String categoryName,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam("price") String price, // Use String to parse BigDecimal manually
+            @RequestParam("quantityAvailable") Integer quantityAvailable,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String userEmail = authentication.getName();
+
+        User seller = userRepository.findByEmail(userEmail)
+                            .orElseThrow(() -> new RuntimeException("Seller not found with email: " + userEmail));
+        
+        Product product = new Product();
         product.setSeller(seller);
-        product.setCategory(resolveCategory(product.getCategory()));
+        product.setProductName(productName);
+        product.setDescription(description);
+        product.setPrice(new java.math.BigDecimal(price)); // Parse price
+        product.setQuantityAvailable(quantityAvailable);
+        product.setStatus("active"); // Default status
+
+        // Handle category: Create a dummy Category object to pass to resolveCategory
+        Category categoryPayload = new Category();
+        categoryPayload.setCategoryName(categoryName);
+        product.setCategory(resolveCategory(categoryPayload));
+
+        // Handle image upload (for now, just set the filename as imageUrl)
+        if (image != null && !image.isEmpty()) {
+            // In a real application, you would save the file to storage (e.g., S3, local disk)
+            // and then store the URL/path. For this task, we'll just use the filename.
+            product.setImageUrl(image.getOriginalFilename());
+        } else {
+            product.setImageUrl("placeholder.png"); // Default or placeholder image
+        }
+
         Product saved = productRepository.save(product);
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(
-            @RequestHeader("Authorization") String token,
             @PathVariable Integer id,
             @RequestBody Product productDetails) {
-        Integer userId = extractUserIdFromToken(token);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String userEmail = authentication.getName();
+
+        User currentUser = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (!product.getSeller().getUserId().equals(userId)) {
-            return ResponseEntity.status(403).build();
+        if (!product.getSeller().getUserId().equals(currentUser.getUserId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         product.setProductName(productDetails.getProductName());
@@ -84,14 +131,21 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(
-            @RequestHeader("Authorization") String token,
             @PathVariable Integer id) {
-        Integer userId = extractUserIdFromToken(token);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String userEmail = authentication.getName();
+
+        User currentUser = userRepository.findByEmail(userEmail)
+                                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        if (!product.getSeller().getUserId().equals(userId)) {
-            return ResponseEntity.status(403).build();
+        if (!product.getSeller().getUserId().equals(currentUser.getUserId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         productRepository.delete(product);
@@ -116,13 +170,4 @@ public class ProductController {
         return categoryRepository.save(categoryPayload);
     }
 
-    private Integer extractUserIdFromToken(String token) {
-        if (token == null || token.isBlank()) {
-            throw new IllegalArgumentException("Authorization token is required");
-        }
-        if (token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
-        return Integer.parseInt(token.replace("token_", ""));
-    }
 }

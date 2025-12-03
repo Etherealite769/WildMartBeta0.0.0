@@ -7,12 +7,12 @@ import '../styles/AddProduct.css';
 const AddProduct = () => {
   const navigate = useNavigate();
   const [productData, setProductData] = useState({
-    name: '',
-    category: '',
+    productName: '',
+    category: '', 
     description: '',
     price: '',
-    stock: '',
-    images: []
+    stock: '', // Changed to 'stock' as per user feedback
+    images: [] 
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -41,30 +41,10 @@ const AddProduct = () => {
     }));
   };
 
-  // Fallback function to save to localStorage
-  const saveToLocalStorage = (product) => {
-    try {
-      const existingProducts = JSON.parse(localStorage.getItem('myProducts') || '[]');
-      const newProduct = {
-        id: Date.now().toString(),
-        ...product,
-        status: 'active',
-        createdAt: new Date().toISOString()
-      };
-      
-      existingProducts.push(newProduct);
-      localStorage.setItem('myProducts', JSON.stringify(existingProducts));
-      return newProduct;
-    } catch (error) {
-      console.error('Error saving to localStorage:', error);
-      throw error;
-    }
-  };
-
 const handlePublish = async () => {
   // Validate required fields
-  if (!productData.name || !productData.category || !productData.price || !productData.stock) {
-    alert('Please fill in all required fields: Name, Category, Price, and Stock');
+  if (!productData.productName || !productData.category || !productData.price || !productData.stock) {
+    alert('Please fill in all required fields: Product Name, Category, Price, and Stock');
     return;
   }
 
@@ -88,55 +68,31 @@ const handlePublish = async () => {
   setIsLoading(true);
 
   try {
-    const productToSave = {
-      name: productData.name,
-      category: productData.category,
-      description: productData.description,
-      price: parseFloat(productData.price),
-      stock: parseInt(productData.stock),
-      images: productData.images
-    };
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    
+    formData.append('productName', productData.productName);
+    formData.append('categoryName', productData.category); // Backend expects categoryName
+    formData.append('description', productData.description);
+    formData.append('price', parseFloat(productData.price));
+    formData.append('quantityAvailable', parseInt(productData.stock)); // Send as quantityAvailable to backend
+    formData.append('status', 'active');
 
-    let savedProduct;
-
-    // Try backend API first
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      
-      formData.append('name', productToSave.name);
-      formData.append('category', productToSave.category);
-      formData.append('description', productToSave.description);
-      formData.append('price', productToSave.price);
-      formData.append('stock', productToSave.stock);
-      formData.append('status', 'active');
-
-      // Add images if any
-      const imageInput = document.getElementById('image-upload');
-      if (imageInput.files.length > 0) {
-        Array.from(imageInput.files).forEach(file => {
-          formData.append('images', file);
-        });
-      }
-
-      const response = await axios.post('http://localhost:8080/api/products', formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      savedProduct = response.data;
-      console.log('Product saved to backend:', savedProduct);
-
-    } catch (apiError) {
-      console.warn('Backend API failed, using localStorage fallback:', apiError);
-      // If backend fails, use localStorage as fallback
-      savedProduct = saveToLocalStorage(productToSave);
+    // Only append the first image if available, as the backend currently expects a single imageUrl
+    const imageInput = document.getElementById('image-upload');
+    if (imageInput.files.length > 0) {
+      formData.append('image', imageInput.files[0]); // Changed from 'images' to 'image' for single file upload
     }
 
-    // Show success message
-    navigate('/my-products');
+    const response = await axios.post('http://localhost:8080/api/products', formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    console.log('Product saved to backend:', response.data);
+    navigate('/my-products'); // Navigate on success
 
   } catch (error) {
     console.error('Error publishing product:', error);
@@ -157,7 +113,9 @@ const handlePublish = async () => {
     <div>
       <Navbar />
       <div className="add-product-main">
-        <h2>Add New Product</h2>
+        <div className="add-product-header">
+          <h2>Add New Product</h2>
+        </div>
         <div className="product-form-container">
           <div className="product-form">
             <h3>Basic Information</h3>
@@ -165,8 +123,8 @@ const handlePublish = async () => {
               <label>Product Name</label>
               <input 
                 type="text" 
-                name="name"
-                value={productData.name}
+                name="productName" // Changed name to match backend
+                value={productData.productName}
                 onChange={handleInputChange}
                 placeholder="Enter product name"
                 required
@@ -193,7 +151,7 @@ const handlePublish = async () => {
               </div>
             </div>
             
-            {/* Price and Stock in one line */}
+            {/* Price and Quantity Available in one line */}
             <div className="form-row">
               <div className="form-group">
                 <label>Price</label>
@@ -212,10 +170,10 @@ const handlePublish = async () => {
                 </div>
               </div>
               <div className="form-group">
-                <label>Stock Quantity</label>
+                <label>Stock</label>
                 <input 
                   type="number" 
-                  name="stock"
+                  name="stock" // Changed name to 'stock' as per user feedback
                   value={productData.stock}
                   onChange={handleInputChange}
                   placeholder="Enter quantity"
@@ -316,7 +274,7 @@ const handlePublish = async () => {
                   </div>
                 )}
               </div>
-              <h4>{productData.name || 'Product Name'}</h4>
+              <h4>{productData.productName || 'Product Name'}</h4>
               <p>{productData.description || 'Product details here!'}</p>
               <div className="preview-category">
                 <strong>Category:</strong> {productData.category || 'Not selected'}
