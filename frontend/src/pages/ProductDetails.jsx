@@ -10,10 +10,27 @@ const ProductDetails = () => {
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isLiked, setIsLiked] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     fetchProduct();
+    fetchCurrentUser();
   }, [id]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await axios.get('http://localhost:8080/api/user/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCurrentUser(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const fetchProduct = async () => {
     try {
@@ -53,6 +70,35 @@ const ProductDetails = () => {
     }
   };
 
+  const handleDelete = async () => {
+    const isConfirmed = window.confirm('Are you sure you want to delete this product? This action cannot be undone.');
+    
+    if (!isConfirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:8080/api/products/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('Product deleted successfully');
+      alert('Product deleted successfully!');
+      navigate('/my-products');
+
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert(`Error deleting product: ${error.response?.data?.message || error.message}. Please try again.`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!product) return <div>Loading...</div>;
 
   return (
@@ -67,7 +113,13 @@ const ProductDetails = () => {
         </div>
 
         <div className="product-info">
-          <h1>{product.name}</h1>
+          <div className="product-header">
+            <h1>{product.name}</h1>
+            <span className={`product-status-badge status-${product.status?.toLowerCase() || 'active'}`}>
+              {product.status ? product.status.charAt(0).toUpperCase() + product.status.slice(1) : 'Active'}
+            </span>
+          </div>
+
           <div className="product-rating">
             <span>⭐ {product.rating || 0}</span>
             <span>({product.reviewCount || 0} reviews)</span>
@@ -123,6 +175,24 @@ const ProductDetails = () => {
                 View Shop
               </button>
             </div>
+            
+            {product.seller?.userId === currentUser?.userId && (
+              <div className="product-owner-actions">
+                <button 
+                  className="btn-edit-product"
+                  onClick={() => navigate(`/edit-product/${id}`)}
+                >
+                  Edit Product
+                </button>
+                <button 
+                  className="btn-delete-product"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Product'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

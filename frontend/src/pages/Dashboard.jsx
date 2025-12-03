@@ -28,8 +28,10 @@ const Dashboard = () => {
       });
       
       console.log('Products fetched:', response.data);
-      setProducts(response.data);
-      setFilteredProducts(response.data);
+      // Filter out sold products
+      const activProducts = response.data.filter(p => p.status !== 'sold');
+      setProducts(activProducts);
+      setFilteredProducts(activProducts);
     } catch (error) {
       console.error('Error fetching products:', error.response?.data || error.message);
     }
@@ -48,6 +50,9 @@ const Dashboard = () => {
 
   const filterProducts = (term, category) => {
     let filtered = products;
+    
+    // Always exclude sold products
+    filtered = filtered.filter(p => p.status !== 'sold');
     
     if (category !== 'All') {
       // Handle both categoryName and category.categoryName formats

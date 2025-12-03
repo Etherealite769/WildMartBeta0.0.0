@@ -165,6 +165,7 @@ public class ProductController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("price") String price,
             @RequestParam("quantityAvailable") Integer quantityAvailable,
+            @RequestParam(value = "status", required = false) String status,
             @RequestPart(value = "image", required = false) MultipartFile image) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -195,6 +196,10 @@ public class ProductController {
         product.setDescription(description);
         product.setPrice(new java.math.BigDecimal(price));
         product.setQuantityAvailable(quantityAvailable);
+
+        if (status != null && !status.isEmpty()) {
+            product.setStatus(status);
+        }
 
         // Handle category
         Category categoryPayload = new Category();

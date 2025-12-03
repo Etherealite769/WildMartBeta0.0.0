@@ -13,6 +13,7 @@ const EditProduct = () => {
     description: '',
     price: '',
     stock: '',
+    status: 'active',
     images: [],
     imageUrl: ''
   });
@@ -62,6 +63,7 @@ const EditProduct = () => {
         description: product.description || '',
         price: product.price || '',
         stock: product.quantityAvailable || '',
+        status: product.status || 'active',
         images: product.imageUrl ? [product.imageUrl] : [],
         imageUrl: product.imageUrl || ''
       });
@@ -137,6 +139,7 @@ const EditProduct = () => {
       formData.append('description', productData.description);
       formData.append('price', parseFloat(productData.price));
       formData.append('quantityAvailable', parseInt(productData.stock));
+      formData.append('status', productData.status);
 
       // Handle image upload - only append if a new image was selected
       const imageInput = document.getElementById('image-upload');
@@ -168,6 +171,36 @@ const EditProduct = () => {
   const handleCancel = () => {
     if (window.confirm('Are you sure you want to cancel? All unsaved changes will be lost.')) {
       navigate('/my-products');
+    }
+  };
+
+  const handleDelete = async () => {
+    const isConfirmed = window.confirm('Are you sure you want to delete this product? This action cannot be undone.');
+    
+    if (!isConfirmed) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:8080/api/products/${productId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('Product deleted successfully');
+      alert('Product deleted successfully!');
+      navigate('/my-products');
+
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      console.error('Error response:', error.response?.data);
+      alert(`Error deleting product: ${error.response?.data?.message || error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -258,6 +291,22 @@ const EditProduct = () => {
             </div>
 
             <div className="form-group">
+              <label>Status</label>
+              <div className="category-dropdown">
+                <select 
+                  name="status"
+                  value={productData.status}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="active">Active</option>
+                  <option value="sold">Sold</option>
+                  <option value="draft">Draft</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
               <label>Product Description</label>
               <textarea 
                 name="description"
@@ -314,6 +363,14 @@ const EditProduct = () => {
               </button>
               <button 
                 type="button" 
+                className="delete-btn" 
+                onClick={handleDelete}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Deleting...' : 'Delete'}
+              </button>
+              <button 
+                type="button" 
                 className="publish-btn" 
                 onClick={handleUpdate}
                 disabled={isSaving}
@@ -341,6 +398,9 @@ const EditProduct = () => {
               <p>{productData.description || 'Product details here!'}</p>
               <div className="preview-category">
                 <strong>Category:</strong> {productData.category || 'Not selected'}
+              </div>
+              <div className="preview-status">
+                <strong>Status:</strong> <span className={`status-badge status-${productData.status}`}>{productData.status.charAt(0).toUpperCase() + productData.status.slice(1)}</span>
               </div>
               <div className="preview-details">
                 <div className="preview-price-stock-row">
