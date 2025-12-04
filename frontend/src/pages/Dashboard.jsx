@@ -14,10 +14,31 @@ const Dashboard = () => {
   const [categories, setCategories] = useState(['All', 'Electronics', 'Clothing', 'Books', 'Home', 'Accesories', 'Sports', 'Others']);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [activeFilter, setActiveFilter] = useState('Popular');
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    // Apply all filters when products or currentUser changes
+    applyAllFilters();
+  }, [products, currentUser, searchTerm, selectedCategory]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await axios.get('http://localhost:8080/api/user/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCurrentUser(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -29,51 +50,56 @@ const Dashboard = () => {
       });
       
       console.log('Products fetched:', response.data);
-      // Filter out sold products
-      const activProducts = response.data.filter(p => p.status !== 'sold');
-      setProducts(activProducts);
-      setFilteredProducts(activProducts);
+      setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error.response?.data || error.message);
       toast.error('Failed to load products. Please refresh the page.');
     }
   };
 
-  const handleSearch = (e) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-    filterProducts(term, selectedCategory);
-  };
-
-  const handleCategoryChange = (category) => {
-    setSelectedCategory(category);
-    filterProducts(searchTerm, category);
-  };
-
-  const filterProducts = (term, category) => {
-    let filtered = products;
+  const applyAllFilters = () => {
+    // Filter out sold products and products belonging to the current user
+    let filtered = products.filter(p => {
+      // Filter out sold products
+      if (p.status === 'sold') return false;
+      
+      // Filter out products belonging to the current user (if we have user data)
+      if (currentUser && typeof currentUser === 'object' && 
+          (p.sellerEmail === currentUser.email || 
+           p.seller?.email === currentUser.email)) {
+        return false;
+      }
+      
+      return true;
+    });
     
-    // Always exclude sold products
-    filtered = filtered.filter(p => p.status !== 'sold');
-    
-    if (category !== 'All') {
-      // Handle both categoryName and category.categoryName formats with case-insensitive matching
+    // Apply category filter
+    if (selectedCategory !== 'All') {
       filtered = filtered.filter(p => {
         const productCategory = (p.categoryName || p.category?.categoryName || p.category || '').toLowerCase();
-        return productCategory === category.toLowerCase();
+        return productCategory === selectedCategory.toLowerCase();
       });
     }
     
-    if (term) {
+    // Apply search filter
+    if (searchTerm) {
       filtered = filtered.filter(p => {
         const name = p.productName || p.name || '';
         const desc = p.description || '';
-        return name.toLowerCase().includes(term.toLowerCase()) ||
-               desc.toLowerCase().includes(term.toLowerCase());
+        return name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               desc.toLowerCase().includes(searchTerm.toLowerCase());
       });
     }
     
     setFilteredProducts(filtered);
+  };
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
   };
 
   return (
