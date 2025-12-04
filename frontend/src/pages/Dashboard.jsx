@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
 import '../styles/Dashboard.css';
