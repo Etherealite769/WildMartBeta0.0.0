@@ -87,6 +87,16 @@ public class AuthService {
         }
     }
     
+    public void resetPassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email not found"));
+        
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        log.info("Password reset successfully for user: {}", email);
+    }
+    
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setUserId(user.getUserId());
