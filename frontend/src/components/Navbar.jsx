@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import logo from '../assets/logo_wildmart.png';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Navbar.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isSeller = user?.role === 'SELLER';
+
+  const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -23,11 +26,11 @@ const Navbar = () => {
         </Link>
 
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
-          <Link to="/dashboard" className="nav-link">Dashboard</Link>
-          {isSeller && <Link to="/my-products" className="nav-link">My Products</Link>}
-          <Link to="/my-orders" className="nav-link">My Orders</Link>
-          <Link to="/my-likes" className="nav-link">Likes</Link>
-          <Link to="/cart" className="nav-link">
+          <Link to="/dashboard" className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}>Dashboard</Link>
+          {isSeller && <Link to="/my-products" className={`nav-link ${isActive('/my-products') ? 'active' : ''}`}>My Products</Link>}
+          <Link to="/my-orders" className={`nav-link ${isActive('/my-orders') ? 'active' : ''}`}>My Orders</Link>
+          <Link to="/my-likes" className={`nav-link ${isActive('/my-likes') ? 'active' : ''}`}>Likes</Link>
+          <Link to="/cart" className={`nav-link ${isActive('/cart') ? 'active' : ''}`}>
             🛒 Cart
           </Link>
         </div>

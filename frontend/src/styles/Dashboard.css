@@ -7,7 +7,7 @@
 .dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 30px 20px;
+  padding: 10px 20px;
 }
 
 .dashboard-header {
@@ -15,7 +15,7 @@
 }
 
 .dashboard-header h2 {
-  font-size: 36px;
+  font-size: 32px;
   color: #800000; /* Maroon */
   margin-bottom: 20px;
   position: relative;
@@ -88,6 +88,7 @@
   background-position: right 15px center;
   background-size: 12px;
   box-shadow: 0 2px 8px rgba(128, 0, 0, 0.05);
+  outline: none;
 }
 
 .category-dropdown select:focus {
@@ -106,7 +107,7 @@
 /* Filter Buttons */
 .filter-buttons {
   display: flex;
-  gap: 12px;
+  gap: 40.5px;
   margin-bottom: 30px;
   flex-wrap: wrap;
   padding: 4px 0;
