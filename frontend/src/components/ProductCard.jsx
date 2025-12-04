@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../styles/ProductCard.css';
 
-const ProductCard = ({ product, onClick, showSeller = true, showEditButton = false, onUnlike }) => {
+const ProductCard = ({ product, onClick, showSeller = true, showEditButton = false, onUnlike, initialLiked = false }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -25,8 +25,13 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
 
   // Check if product is already liked when component mounts
   useEffect(() => {
-    checkIfLiked();
-  }, []);
+    // If initialLiked is provided (e.g., from MyLikes page), use it
+    if (initialLiked) {
+      setIsLiked(true);
+    } else {
+      checkIfLiked();
+    }
+  }, [initialLiked, product.productId, product.id]);
 
   const checkIfLiked = async () => {
     try {

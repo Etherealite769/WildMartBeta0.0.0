@@ -68,6 +68,7 @@ const MyLikes = () => {
                     product={product}
                     onClick={() => navigate(`/product/${productId}`)}
                     onUnlike={() => handleUnlike(productId)}
+                    initialLiked={true}
                   />
                 </div>
               );
