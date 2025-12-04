@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../styles/ProductCard.css';
 
-const ProductCard = ({ product, onClick, showSeller = true, showEditButton = false }) => {
+const ProductCard = ({ product, onClick, showSeller = true, showEditButton = false, onUnlike }) => {
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -23,9 +23,82 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
   const isNew = createdAt && (Date.now() - createdAt.getTime()) < 7 * 24 * 60 * 60 * 1000;
   const isLowStock = stockQuantity > 0 && stockQuantity <= 5;
 
-  const handleLike = (e) => {
+  // Check if product is already liked when component mounts
+  useEffect(() => {
+    checkIfLiked();
+  }, []);
+
+  const checkIfLiked = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await axios.get('http://localhost:8080/api/user/likes', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const likedProducts = Array.isArray(response.data) ? response.data : Array.from(response.data);
+        const productId = product.productId || product.id;
+        const isProductLiked = likedProducts.some(p => 
+          (p.productId || p.id) === productId
+        );
+        setIsLiked(isProductLiked);
+      }
+    } catch (error) {
+      console.error('Error checking like status:', error);
+    }
+  };
+
+  const likeProduct = async (productId, shouldLike) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to like products');
+        return false;
+      }
+
+      if (shouldLike) {
+        // Like the product
+        await axios.post(`http://localhost:8080/api/user/likes/${productId}`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // Unlike the product
+        await axios.delete(`http://localhost:8080/api/user/likes/${productId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+      
+      // Refresh the like status after the operation
+      setTimeout(() => {
+        checkIfLiked();
+      }, 100);
+      
+      return true;
+    } catch (error) {
+      console.error('Error liking/unliking product:', error);
+      toast.error('Failed to update like status. Please try again.');
+      return false;
+    }
+  };
+
+  const handleLike = async (e) => {
     e.stopPropagation();
-    setIsLiked(!isLiked);
+    
+    const productId = product.productId || product.id;
+    const newLikeState = !isLiked;
+    
+    // Optimistically update UI
+    setIsLiked(newLikeState);
+    
+    // Call API to like/unlike the product
+    const success = await likeProduct(productId, newLikeState);
+    
+    // If API call failed, revert the UI change
+    if (!success) {
+      setIsLiked(!newLikeState);
+    } else if (!newLikeState && onUnlike) {
+      // If unliking was successful and we have an onUnlike callback, call it
+      onUnlike(productId);
+    }
   };
 
   const handleEditProduct = (e) => {
