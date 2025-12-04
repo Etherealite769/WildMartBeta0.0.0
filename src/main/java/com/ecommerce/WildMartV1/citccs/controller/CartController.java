@@ -130,6 +130,7 @@ public class CartController {
     }
     
     @PutMapping("/items/{itemId}")
+    @Transactional
     public ResponseEntity<?> updateCartItem(
             @RequestHeader("Authorization") String token,
             @PathVariable Integer itemId,
@@ -138,9 +139,18 @@ public class CartController {
                 .orElseThrow(() -> new RuntimeException("Cart item not found"));
         
         Integer quantity = request.get("quantity");
-        if (quantity == null || quantity <= 0) {
-            throw new RuntimeException("Quantity must be greater than zero");
+        if (quantity == null || quantity < 0) {
+            throw new RuntimeException("Quantity cannot be negative");
         }
+        
+        // If quantity is 0, remove the item from cart
+        if (quantity == 0) {
+            cartItemRepository.deleteById(itemId);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Item removed from cart");
+            return ResponseEntity.ok(response);
+        }
+        
         item.setQuantity(quantity);
         cartItemRepository.save(item);
         

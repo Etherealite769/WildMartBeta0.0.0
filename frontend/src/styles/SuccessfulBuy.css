@@ -149,6 +149,20 @@
   font-weight: 500;
 }
 
+.detail-row strong {
+  color: #800000;
+  font-weight: 700;
+}
+
+.status-badge {
+  background: linear-gradient(135deg, #FFBF00 0%, #FFA500 100%);
+  color: #800000;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
 .success-actions {
   display: flex;
   gap: 15px;
