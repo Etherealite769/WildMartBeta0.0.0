@@ -17,10 +17,13 @@ const EditProduct = () => {
     stock: '',
     status: 'active',
     images: [],
-    imageUrl: ''
+    imageUrl: '',
+    sellerId: null,
+    isOwner: true
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState({
     title: '',
@@ -37,52 +40,57 @@ const EditProduct = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Try with token first
-      let response;
-      try {
-        response = await axios.get(`http://localhost:8080/api/products/${productId}`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`
-          }
-        });
-      } catch (error) {
-        // If error, try without token
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          console.log('Auth failed, retrying without token');
-          response = await axios.get(`http://localhost:8080/api/products/${productId}`);
-        } else {
-          throw error;
-        }
+      if (!token) {
+        navigate('/login');
+        return;
       }
+
+      const response = await axios.get(`http://localhost:8080/api/products/${productId}`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       const product = response.data;
       console.log('Product data:', product);
       
-      // Extract category name from category object if it exists
-      let categoryName = '';
-      if (product.category) {
-        categoryName = product.category.categoryName || product.category;
-      } else if (product.categoryName) {
-        categoryName = product.categoryName;
-      }
+      // Check ownership - store for later use but don't block viewing
+      const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+      const currentUserEmail = tokenPayload.sub;
+      const isOwner = !product.sellerEmail || product.sellerEmail === currentUserEmail;
+      
+      // Extract category name - now directly from categoryName field
+      const categoryName = product.categoryName || '';
       
       setProductData({
         productName: product.productName || '',
-        category: categoryName || '',
+        category: categoryName,
         description: product.description || '',
         price: product.price || '',
         stock: product.quantityAvailable || '',
         status: product.status || 'active',
         images: product.imageUrl ? [product.imageUrl] : [],
-        imageUrl: product.imageUrl || ''
+        imageUrl: product.imageUrl || '',
+        sellerId: product.sellerId,
+        isOwner: isOwner
       });
+      
+      // If not owner, show error after loading data
+      if (!isOwner) {
+        setError('You do not have permission to edit this product.');
+      }
     } catch (error) {
       console.error('Error fetching product details:', error);
       console.error('Error response:', error.response?.data);
-      console.error('Product ID:', productId);
-      console.error('Full error:', error.message);
-      toast.error(`Error loading product details: ${error.response?.data?.message || error.message}. Please try again.`);
-      navigate('/my-products');
+      
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else if (error.response?.status === 404) {
+        setError('Product not found.');
+      } else {
+        setError('Failed to load product details. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -148,7 +156,7 @@ const EditProduct = () => {
 
     try {
       const token = localStorage.getItem('token');
-      console.log('Authorization Token:', token);
+      console.log('Authorization Token exists:', !!token);
       
       if (!token) {
         toast.error('No authentication token found. Please log in again.');
@@ -167,6 +175,7 @@ const EditProduct = () => {
           navigate('/login');
           return;
         }
+        console.log('Token valid, user email:', payload.sub);
       } catch (e) {
         console.log('Invalid token format, clearing and redirecting to login');
         localStorage.removeItem('token');
@@ -175,17 +184,18 @@ const EditProduct = () => {
         return;
       }
       
-      // Use JSON endpoint with proper category object format
+      // Build the update payload matching ProductDTO expected by backend
       const updatePayload = {
         productName: productData.productName,
-        category: {
-          categoryName: productData.category
-        },
         description: productData.description,
         price: parseFloat(productData.price),
         quantityAvailable: parseInt(productData.stock),
-        status: productData.status
+        status: productData.status,
+        imageUrl: productData.imageUrl || (productData.images.length > 0 ? productData.images[0] : null),
+        categoryName: productData.category
       };
+
+      console.log('Sending update payload:', updatePayload);
 
       const response = await axios.put(`http://localhost:8080/api/products/${productId}`, updatePayload, {
         headers: {
@@ -208,7 +218,9 @@ const EditProduct = () => {
         localStorage.removeItem('token');
         navigate('/login');
       } else if (error.response?.status === 403) {
-        toast.error('You do not have permission to update this product.');
+        const errorData = error.response?.data;
+        console.error('Permission denied details:', errorData);
+        toast.error(`Permission denied: ${errorData?.message || 'You can only update your own products.'}`);
       } else {
         toast.error(`Error updating product: ${error.response?.data?.message || error.message}. Please try again.`);
       }
@@ -275,6 +287,31 @@ const EditProduct = () => {
         <div className="add-product-main">
           <div className="add-product-header">
             <h2>Loading...</h2>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Navbar />
+        <div className="add-product-main">
+          <div className="add-product-header">
+            <h2>Edit Product</h2>
+          </div>
+          <div className="product-form-container">
+            <div className="product-form" style={{ textAlign: 'center', padding: '40px' }}>
+              <p style={{ color: '#666', marginBottom: '20px' }}>{error}</p>
+              <button 
+                type="button" 
+                className="cancel-btn" 
+                onClick={() => navigate('/my-products')}
+              >
+                Back to My Products
+              </button>
+            </div>
           </div>
         </div>
       </div>
