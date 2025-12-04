@@ -14,6 +14,7 @@ import MyPurchases from './pages/MyPurchases';
 import MyLikes from './pages/MyLikes';
 import MyOrders from './pages/MyOrders';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
 import SuccessfulBuy from './pages/SuccessfulBuy';
 import ProductDetails from './pages/ProductDetails';
 import RecentlyViewed from './pages/RecentlyViewed';
@@ -106,6 +107,10 @@ function App() {
           <Route 
             path="/cart" 
             element={isAuthenticated ? <Cart /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/checkout" 
+            element={isAuthenticated ? <Checkout /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/success" 

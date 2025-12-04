@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
+import ConfirmModal from '../components/ConfirmModal';
 import '../styles/Cart.css';
 
 const Cart = () => {
@@ -10,6 +11,8 @@ const Cart = () => {
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [itemToRemove, setItemToRemove] = useState(null);
 
   useEffect(() => {
     fetchCart();
@@ -29,7 +32,6 @@ const Cart = () => {
       setCartItems(response.data.items || []);
     } catch (error) {
       console.error('Error fetching cart:', error);
-      toast.error('Failed to load cart items. Please refresh the page.');
     } finally {
       setLoading(false);
     }
@@ -44,13 +46,22 @@ const Cart = () => {
   };
 
   const updateQuantity = async (itemId, newQuantity) => {
-    if (newQuantity < 1) return;
+    // If quantity reaches 0, show confirmation modal
+    if (newQuantity === 0) {
+      setItemToRemove(itemId);
+      setShowRemoveModal(true);
+      return;
+    }
+    
+    if (newQuantity < 0) return;
+    
     try {
       await axios.put(`http://localhost:8080/api/cart/items/${itemId}`, 
         { quantity: newQuantity },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
       fetchCart();
+      toast.success('Quantity updated successfully');
     } catch (error) {
       console.error('Error updating quantity:', error);
       
@@ -65,29 +76,39 @@ const Cart = () => {
     }
   };
 
-  const removeItem = async (itemId) => {
+  const confirmRemoveItem = async () => {
+    if (!itemToRemove) return;
+    
     try {
-      await axios.delete(`http://localhost:8080/api/cart/items/${itemId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      await axios.put(`http://localhost:8080/api/cart/items/${itemToRemove}`, 
+        { quantity: 0 },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
+      );
+      setShowRemoveModal(false);
+      setItemToRemove(null);
       fetchCart();
+      toast.success('Item removed from cart');
     } catch (error) {
       console.error('Error removing item:', error);
       toast.error('Failed to remove item. Please try again.');
+      setShowRemoveModal(false);
+      setItemToRemove(null);
     }
   };
 
-  const handleCheckout = async () => {
-    try {
-      await axios.post('http://localhost:8080/api/orders/checkout', 
-        { cartItems },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
-      );
-      navigate('/success');
-    } catch (error) {
-      console.error('Error during checkout:', error);
-      toast.error('Checkout failed. Please try again.');
+  const cancelRemove = () => {
+    setShowRemoveModal(false);
+    setItemToRemove(null);
+  };
+
+
+
+  const handleCheckout = () => {
+    if (cartItems.length === 0) {
+      toast.error('Your cart is empty');
+      return;
     }
+    navigate('/checkout');
   };
 
   if (loading) {
@@ -118,29 +139,80 @@ const Cart = () => {
                 const itemPrice = Number(item.priceAtAddition || item.product?.price || 0);
                 const itemTotal = itemPrice * item.quantity;
                 
+                // Enhanced seller name extraction to get full name
+                let sellerName = 'Unknown Seller';
+                const seller = item.product?.seller;
+                
+                if (item.product?.sellerName) {
+                  sellerName = item.product.sellerName;
+                } else if (item.product?.fullName) { // Check for fullName field
+                  sellerName = item.product.fullName;
+                } else if (item.product?.full_name) { // Check for full_name field
+                  sellerName = item.product.full_name;
+                } else if (seller) {
+                  // Try to get full name from various possible fields
+                  if (seller.firstName && seller.lastName) {
+                    sellerName = `${seller.firstName} ${seller.lastName}`;
+                  } else if (seller.fullName) { // Check for fullName in seller object
+                    sellerName = seller.fullName;
+                  } else if (seller.full_name) { // Check for full_name in seller object
+                    sellerName = seller.full_name;
+                  } else if (seller.firstName) {
+                    sellerName = seller.firstName;
+                  } else if (seller.lastName) {
+                    sellerName = seller.lastName;
+                  } else if (seller.name) {
+                    sellerName = seller.name;
+                  } else if (seller.username) {
+                    sellerName = seller.username;
+                  } else if (seller.email) {
+                    // Extract name from email if no other name is available
+                    const emailName = seller.email.split('@')[0];
+                    // Convert dots/hyphens/underscores to spaces and capitalize
+                    sellerName = emailName.replace(/[-_.]/g, ' ')
+                      .split(' ')
+                      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                      .join(' ');
+                  }
+                }
+                
                 return (
                   <div key={item.id} className="cart-item">
                     <div className="item-image">
-                      <img src={productImage} alt={productName} />
+                      <img 
+                        src={productImage} 
+                        alt={productName}
+                        onError={(e) => {
+                          e.target.src = '/placeholder.png';
+                          e.target.onerror = null;
+                        }}
+                      />
                     </div>
                     <div className="item-details">
                       <h3>{productName}</h3>
-                      <p className="item-price">₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                      <p className="item-seller">by {sellerName}</p>
+                      <p className="unit-price">Unit Price: ₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
                     </div>
-                    <div className="item-quantity">
-                      <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button>
-                      <span>{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
+                    <div className="item-quantity-controls">
+                      <button 
+                        className="quantity-btn"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      >
+                        -
+                      </button>
+                      <span className="quantity-display">{item.quantity}</span>
+                      <button 
+                        className="quantity-btn"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
+                        +
+                      </button>
                     </div>
-                    <div className="item-total">
-                      <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                    <div className="cart-item-actions">
+                      <div className="item-total">
+                        <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                      </div>
                     </div>
-                    <button 
-                      className="btn-remove"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      Remove
-                    </button>
                   </div>
                 );
               })}
@@ -186,6 +258,17 @@ const Cart = () => {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={showRemoveModal}
+        title="Remove Item"
+        message="Are you sure you want to remove this item from your cart?"
+        onConfirm={confirmRemoveItem}
+        onCancel={cancelRemove}
+        confirmText="Yes, Remove"
+        cancelText="No, Keep It"
+        type="danger"
+      />
     </div>
   );
 };

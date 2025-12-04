@@ -53,7 +53,6 @@ const Dashboard = () => {
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error.response?.data || error.message);
-      toast.error('Failed to load products. Please refresh the page.');
     }
   };
 
