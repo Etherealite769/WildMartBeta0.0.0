@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 import '../styles/ProductCard.css';
 
 const ProductCard = ({ product, onClick, showSeller = true, showEditButton = false }) => {
@@ -31,10 +33,35 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
     navigate(`/edit-product/${product.productId || product.id}`);
   };
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
     e.stopPropagation();
-    // Add to cart logic here
-    console.log('Added to cart:', product.id);
+    
+    // Get product ID (handle both field name formats)
+    const productId = product.productId || product.id;
+    
+    if (!productId) {
+      toast.error('Product ID not found');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to add items to cart');
+        return;
+      }
+      
+      // Add to cart API call
+      await axios.post('http://localhost:8080/api/cart/add', 
+        { productId: productId, quantity: 1 },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      
+      toast.success('Product added to cart!');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add to cart. Please try again.');
+    }
   };
 
   return (
@@ -131,6 +158,7 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
               className="add-to-cart-btn"
               onClick={handleAddToCart}
               aria-label="Add to cart"
+              disabled={stockQuantity === 0}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="9" cy="21" r="1"></circle>
