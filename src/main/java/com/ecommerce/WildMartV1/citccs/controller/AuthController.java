@@ -53,4 +53,25 @@ public class AuthController {
             return ResponseEntity.status(401).body(Collections.singletonMap("error", "Invalid token"));
         }
     }
+    
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            String newPassword = request.get("newPassword");
+            
+            if (email == null || newPassword == null) {
+                return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Email and new password are required"));
+            }
+            
+            if (newPassword.length() < 6) {
+                return ResponseEntity.badRequest().body(Collections.singletonMap("error", "Password must be at least 6 characters"));
+            }
+            
+            authService.resetPassword(email, newPassword);
+            return ResponseEntity.ok(Collections.singletonMap("message", "Password reset successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
 }
