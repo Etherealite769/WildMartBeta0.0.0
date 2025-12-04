@@ -78,10 +78,39 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Integer id) {
-        Product product = productRepository.findById(id)
+    @Transactional(readOnly = true)
+    public ResponseEntity<Map<String, Object>> getProductById(@PathVariable Integer id) {
+        Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-        return ResponseEntity.ok(product);
+        
+        Map<String, Object> productMap = new HashMap<>();
+        productMap.put("productId", product.getProductId());
+        productMap.put("productName", product.getProductName());
+        productMap.put("description", product.getDescription());
+        productMap.put("price", product.getPrice());
+        productMap.put("quantityAvailable", product.getQuantityAvailable());
+        productMap.put("imageUrl", product.getImageUrl());
+        productMap.put("status", product.getStatus());
+        productMap.put("viewCount", product.getViewCount());
+        productMap.put("likeCount", product.getLikeCount());
+        productMap.put("averageRating", product.getAverageRating());
+        productMap.put("createdAt", product.getCreatedAt());
+        productMap.put("updatedAt", product.getUpdatedAt());
+        
+        // Add category info
+        if (product.getCategory() != null) {
+            productMap.put("categoryName", product.getCategory().getCategoryName());
+            productMap.put("categoryId", product.getCategory().getId());
+        }
+        
+        // Add seller info - important for ownership verification
+        if (product.getSeller() != null) {
+            productMap.put("sellerId", product.getSeller().getUserId());
+            productMap.put("sellerName", product.getSeller().getFullName() != null ? product.getSeller().getFullName() : product.getSeller().getUsername());
+            productMap.put("sellerEmail", product.getSeller().getEmail());
+        }
+        
+        return ResponseEntity.ok(productMap);
     }
 
     @PostMapping
@@ -118,7 +147,7 @@ public class ProductController {
     @Transactional
     public ResponseEntity<?> updateProduct(
             @PathVariable Integer id,
-            @RequestBody Product productDetails) {
+            @RequestBody ProductDTO productDTO) {
         log.info("Updating product with id: {}", id);
         
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -164,18 +193,29 @@ public class ProductController {
                             "productSellerId", sellerId != null ? sellerId : "null"));
         }
 
-        product.setProductName(productDetails.getProductName());
-        product.setDescription(productDetails.getDescription());
-        product.setPrice(productDetails.getPrice());
-        if (productDetails.getCategory() != null) {
-            product.setCategory(resolveCategory(productDetails.getCategory()));
+        // Update product fields from DTO
+        if (productDTO.getProductName() != null) {
+            product.setProductName(productDTO.getProductName());
         }
-        product.setImageUrl(productDetails.getImageUrl());
-        if (productDetails.getQuantityAvailable() != null) {
-            product.setQuantityAvailable(productDetails.getQuantityAvailable());
+        if (productDTO.getDescription() != null) {
+            product.setDescription(productDTO.getDescription());
         }
-        if (productDetails.getStatus() != null) {
-            product.setStatus(productDetails.getStatus());
+        if (productDTO.getPrice() != null) {
+            product.setPrice(productDTO.getPrice());
+        }
+        if (productDTO.getCategoryName() != null) {
+            Category categoryPayload = new Category();
+            categoryPayload.setCategoryName(productDTO.getCategoryName());
+            product.setCategory(resolveCategory(categoryPayload));
+        }
+        if (productDTO.getImageUrl() != null) {
+            product.setImageUrl(productDTO.getImageUrl());
+        }
+        if (productDTO.getQuantityAvailable() != null) {
+            product.setQuantityAvailable(productDTO.getQuantityAvailable());
+        }
+        if (productDTO.getStatus() != null) {
+            product.setStatus(productDTO.getStatus());
         }
 
         Product updated = productRepository.save(product);
