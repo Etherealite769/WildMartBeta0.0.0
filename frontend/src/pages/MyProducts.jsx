@@ -140,6 +140,8 @@ const MyProducts = () => {
                 <ProductCard 
                   product={product} 
                   onClick={() => setSelectedProduct(product)}
+                  showSeller={false}
+                  showEditButton={true}
                 />
                 <span className={`product-status ${getStatusClass(product.status)}`}>
                   {product.status ? product.status.charAt(0).toUpperCase() + product.status.slice(1) : 'Draft'}

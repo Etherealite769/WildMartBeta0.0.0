@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/ProductCard.css';
 
-const ProductCard = ({ product, onClick }) => {
+const ProductCard = ({ product, onClick, showSeller = true, showEditButton = false }) => {
+  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -22,6 +24,11 @@ const ProductCard = ({ product, onClick }) => {
   const handleLike = (e) => {
     e.stopPropagation();
     setIsLiked(!isLiked);
+  };
+
+  const handleEditProduct = (e) => {
+    e.stopPropagation();
+    navigate(`/edit-product/${product.productId || product.id}`);
   };
 
   const handleAddToCart = (e) => {
@@ -100,23 +107,38 @@ const ProductCard = ({ product, onClick }) => {
           <span className="product-category">{productCategory}</span>
         )}
         <h3 className="product-name" title={productName}>{productName}</h3>
-        <p className="product-seller">by {sellerName}</p>
+        {showSeller && (
+          <p className="product-seller">by {sellerName}</p>
+        )}
         
         <div className="product-footer">
           <div className="price-section">
             <span className="product-price">₱{productPrice.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
-          <button 
-            className="add-to-cart-btn"
-            onClick={handleAddToCart}
-            aria-label="Add to cart"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="9" cy="21" r="1"></circle>
-              <circle cx="20" cy="21" r="1"></circle>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-            </svg>
-          </button>
+          {showEditButton ? (
+            <button 
+              className="edit-product-btn"
+              onClick={handleEditProduct}
+              aria-label="Edit product"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+          ) : (
+            <button 
+              className="add-to-cart-btn"
+              onClick={handleAddToCart}
+              aria-label="Add to cart"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

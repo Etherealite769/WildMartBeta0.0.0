@@ -29,6 +29,11 @@
   color: white;
 }
 
+.product-card:hover .edit-product-btn {
+  background: #800000;
+  color: white;
+}
+
 /* Product Badges */
 .product-badges {
   position: absolute;
@@ -249,6 +254,34 @@
   height: 18px;
 }
 
+/* Edit Product Button */
+.edit-product-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  color: #1976d2;
+}
+
+.edit-product-btn:hover {
+  background: #1976d2;
+  color: white;
+  border-color: #1976d2;
+  transform: scale(1.1);
+  box-shadow: 0 4px 15px rgba(25, 118, 210, 0.25);
+}
+
+.edit-product-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .product-image {
@@ -268,6 +301,11 @@
   }
   
   .add-to-cart-btn {
+    width: 34px;
+    height: 34px;
+  }
+  
+  .edit-product-btn {
     width: 34px;
     height: 34px;
   }
