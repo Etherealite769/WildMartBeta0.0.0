@@ -106,7 +106,7 @@ const Dashboard = () => {
       
       <div className="dashboard-container">
         <div className="dashboard-header">
-          <h2>Dashboard</h2>
+          <h2>Wildcats Marketplace</h2>
           <div className="search-and-category">
             <div className="search-bar">
               <i className="fas fa-search"></i>
