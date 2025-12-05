@@ -154,8 +154,19 @@ const AccountInformation = () => {
         .from('Profile Image')
         .getPublicUrl(fileName);
 
-      setProfileImage(urlData.publicUrl);
-      setAccountData(prev => ({ ...prev, profileImage: urlData.publicUrl }));
+      const imageUrl = urlData.publicUrl;
+      
+      // Update local state
+      setProfileImage(imageUrl);
+      setAccountData(prev => ({ ...prev, profileImage: imageUrl }));
+      
+      // Immediately save to backend
+      const token = localStorage.getItem('token');
+      await axios.put('http://localhost:8080/api/user/account', 
+        { profileImage: imageUrl },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      
       setShowCropper(false);
       setImageToCrop(null);
     } catch (error) {
