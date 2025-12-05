@@ -136,8 +136,19 @@ const EditProfile = () => {
         .from('Profile Image')
         .getPublicUrl(fileName);
 
-      setProfileImage(urlData.publicUrl);
-      setExistingProfileImage(urlData.publicUrl);
+      const imageUrl = urlData.publicUrl;
+      
+      // Update local state
+      setProfileImage(imageUrl);
+      setExistingProfileImage(imageUrl);
+      
+      // Immediately save to backend
+      const token = localStorage.getItem('token');
+      await axios.put('http://localhost:8080/api/user/profile', 
+        { profileImage: imageUrl },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      
       setShowCropper(false);
       setImageToCrop(null);
     } catch (error) {

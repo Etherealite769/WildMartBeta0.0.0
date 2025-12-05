@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import logo from '../assets/logo_wildmart.png';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import '../styles/Navbar.css';
@@ -7,8 +8,29 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isSeller = user?.role === 'SELLER';
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await axios.get('http://localhost:8080/api/user/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.profileImage) {
+          setProfileImage(response.data.profileImage);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const isActive = (path) => location.pathname === path;
 
@@ -39,7 +61,11 @@ const Navbar = () => {
           <div className="user-menu">
             <button className="user-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               <div className="user-avatar">
-                {user?.username?.charAt(0).toUpperCase() || 'U'}
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="avatar-img" />
+                ) : (
+                  user?.username?.charAt(0).toUpperCase() || 'U'
+                )}
               </div>
             </button>
             {isMenuOpen && (
