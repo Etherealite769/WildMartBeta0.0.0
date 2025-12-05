@@ -13,6 +13,7 @@ import MyProducts from './pages/MyProducts';
 import MyPurchases from './pages/MyPurchases';
 import MyLikes from './pages/MyLikes';
 import MyOrders from './pages/MyOrders';
+import OrderDetails from './pages/OrderDetails';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import SuccessfulBuy from './pages/SuccessfulBuy';
@@ -103,6 +104,10 @@ function App() {
           <Route 
             path="/my-orders" 
             element={isAuthenticated ? <MyOrders /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/order-details/:orderId" 
+            element={isAuthenticated ? <OrderDetails /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/cart" 

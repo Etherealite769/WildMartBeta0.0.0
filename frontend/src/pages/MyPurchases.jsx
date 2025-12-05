@@ -64,7 +64,7 @@ const MyPurchases = () => {
               <div className="purchase-details">
                 <h3>{purchase.product?.name}</h3>
                 <p className="purchase-date">Purchased on: {new Date(purchase.date).toLocaleDateString()}</p>
-                <p className="purchase-price">${purchase.totalPrice}</p>
+                <p className="purchase-price">₱{Number(purchase.totalPrice).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 <p className="purchase-status">{purchase.status}</p>
               </div>
             </div>

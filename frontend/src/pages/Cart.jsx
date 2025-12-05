@@ -191,7 +191,7 @@ const Cart = () => {
                     <div className="item-details">
                       <h3>{productName}</h3>
                       <p className="item-seller">by {sellerName}</p>
-                      <p className="unit-price">Unit Price: ₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                      <p className="unit-price">Unit Price: ₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                     <div className="item-quantity-controls">
                       <button 
@@ -210,7 +210,7 @@ const Cart = () => {
                     </div>
                     <div className="cart-item-actions">
                       <div className="item-total">
-                        <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                        <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                     </div>
                   </div>
@@ -221,7 +221,7 @@ const Cart = () => {
             <div className="cart-summary">
               <div className="summary-row">
                 <span>Subtotal:</span>
-                <span>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                <span>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="summary-row">
                 <span>Shipping:</span>
@@ -229,7 +229,7 @@ const Cart = () => {
               </div>
               <div className="summary-row total">
                 <strong>Total:</strong>
-                <strong>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+                <strong>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
               <button 
                 className="btn-checkout"
