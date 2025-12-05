@@ -14,15 +14,19 @@ const Checkout = () => {
   const [shippingAddress, setShippingAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
   const [userInfo, setUserInfo] = useState(null);
+  const [vouchers, setVouchers] = useState([]);
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [voucherCode, setVoucherCode] = useState('');
 
   useEffect(() => {
     fetchUserInfo();
     fetchCart();
+    fetchVouchers();
   }, []);
 
   useEffect(() => {
     calculateTotal();
-  }, [cartItems]);
+  }, [cartItems, selectedVoucher]);
 
   const fetchUserInfo = async () => {
     try {
@@ -63,12 +67,89 @@ const Checkout = () => {
     }
   };
 
+  const fetchVouchers = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/vouchers', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setVouchers(response.data);
+    } catch (error) {
+      console.error('Error fetching vouchers:', error);
+    }
+  };
+
   const calculateTotal = () => {
     const sum = cartItems.reduce((acc, item) => {
       const price = item.priceAtAddition || item.product?.price || 0;
       return acc + (Number(price) * item.quantity);
     }, 0);
+    
     setTotal(sum);
+  };
+
+  const calculateDiscount = () => {
+    if (!selectedVoucher) return 0;
+    
+    const subtotal = cartItems.reduce((acc, item) => {
+      const price = item.priceAtAddition || item.product?.price || 0;
+      return acc + (Number(price) * item.quantity);
+    }, 0);
+    
+    let discount = 0;
+    
+    switch (selectedVoucher.discountType) {
+      case 'PERCENTAGE':
+        discount = subtotal * (selectedVoucher.discountValue / 100);
+        break;
+      case 'FIXED_AMOUNT':
+        discount = selectedVoucher.discountValue;
+        break;
+      case 'SHIPPING':
+        discount = 50; // Assuming ₱50 shipping fee
+        break;
+      default:
+        discount = 0;
+    }
+    
+    // Ensure discount doesn't exceed subtotal
+    return Math.min(discount, subtotal);
+  };
+
+  const getGrandTotal = () => {
+    const subtotal = cartItems.reduce((acc, item) => {
+      const price = item.priceAtAddition || item.product?.price || 0;
+      return acc + (Number(price) * item.quantity);
+    }, 0);
+    
+    return subtotal - calculateDiscount();
+  };
+
+  const handleApplyVoucher = () => {
+    if (!voucherCode.trim()) {
+      toast.error('Please enter a voucher code');
+      return;
+    }
+    
+    const voucher = vouchers.find(v => v.discountCode === voucherCode.toUpperCase());
+    if (!voucher) {
+      toast.error('Invalid voucher code');
+      return;
+    }
+    
+    // Check minimum order amount
+    if (voucher.minimumOrderAmount && total < voucher.minimumOrderAmount) {
+      toast.error(`Minimum order amount is ₱${voucher.minimumOrderAmount.toFixed(2)}`);
+      return;
+    }
+    
+    setSelectedVoucher(voucher);
+    toast.success(`Voucher applied: ${voucher.discountCode}`);
+  };
+
+  const handleRemoveVoucher = () => {
+    setSelectedVoucher(null);
+    setVoucherCode('');
+    toast.info('Voucher removed');
   };
 
   const handlePlaceOrder = async () => {
@@ -86,11 +167,18 @@ const Checkout = () => {
     setProcessing(true);
 
     try {
+      const orderData = {
+        shippingAddress: shippingAddress.trim(),
+        paymentMethod: paymentMethod
+      };
+      
+      // Add voucher code if selected
+      if (selectedVoucher) {
+        orderData.voucherCode = selectedVoucher.discountCode;
+      }
+      
       const response = await axios.post('http://localhost:8080/api/orders/checkout', 
-        {
-          shippingAddress: shippingAddress.trim(),
-          paymentMethod: paymentMethod
-        },
+        orderData,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
 
@@ -120,6 +208,9 @@ const Checkout = () => {
       </div>
     );
   }
+
+  const discountAmount = calculateDiscount();
+  const grandTotal = getGrandTotal();
 
   return (
     <div className="checkout-page">
@@ -168,19 +259,95 @@ const Checkout = () => {
                 <span>Subtotal:</span>
                 <span>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
+              
+              {selectedVoucher && (
+                <div className="summary-row discount-row">
+                  <span>Discount ({selectedVoucher.discountCode}):</span>
+                  <span>-₱{discountAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              
               <div className="summary-row">
                 <span>Shipping:</span>
                 <span>₱0.00</span>
               </div>
               <div className="summary-row total-row">
                 <strong>Total:</strong>
-                <strong>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                <strong>₱{grandTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
             </div>
           </div>
 
           {/* Shipping & Payment */}
           <div className="checkout-section checkout-form-section">
+            {/* Voucher Section */}
+            <div className="form-section">
+              <h3>Voucher</h3>
+              {selectedVoucher ? (
+                <div className="voucher-applied">
+                  <div className="voucher-info">
+                    <span className="voucher-code">{selectedVoucher.discountCode}</span>
+                    <span className="voucher-discount">
+                      {selectedVoucher.discountType === 'PERCENTAGE' && `${selectedVoucher.discountValue}% OFF`}
+                      {selectedVoucher.discountType === 'FIXED_AMOUNT' && `₱${selectedVoucher.discountValue.toFixed(2)} OFF`}
+                      {selectedVoucher.discountType === 'SHIPPING' && 'FREE SHIPPING'}
+                    </span>
+                  </div>
+                  <button 
+                    className="btn-remove-voucher"
+                    onClick={handleRemoveVoucher}
+                    disabled={processing}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="voucher-input-container">
+                  <input
+                    type="text"
+                    className="voucher-input"
+                    placeholder="Enter voucher code"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                    disabled={processing}
+                  />
+                  <button 
+                    className="btn-apply-voucher"
+                    onClick={handleApplyVoucher}
+                    disabled={processing}
+                  >
+                    Apply
+                  </button>
+                </div>
+              )}
+              
+              {vouchers.length > 0 && (
+                <div className="available-vouchers">
+                  <h4>Available Vouchers:</h4>
+                  <div className="voucher-list">
+                    {vouchers.map(voucher => (
+                      <div key={voucher.discountId} className="voucher-card">
+                        <div className="voucher-card-header">
+                          <span className="voucher-card-code">{voucher.discountCode}</span>
+                          <span className="voucher-card-type">
+                            {voucher.discountType === 'PERCENTAGE' && `${voucher.discountValue}% OFF`}
+                            {voucher.discountType === 'FIXED_AMOUNT' && `₱${voucher.discountValue.toFixed(2)} OFF`}
+                            {voucher.discountType === 'SHIPPING' && 'FREE SHIPPING'}
+                          </span>
+                        </div>
+                        <div className="voucher-card-details">
+                          {voucher.minimumOrderAmount && (
+                            <small>Min. order: ₱{voucher.minimumOrderAmount.toFixed(2)}</small>
+                          )}
+                          <small>Valid until: {new Date(voucher.validUntil).toLocaleDateString()}</small>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <div className="form-section">
               <h3>Shipping Address</h3>
               <div className="address-options">
