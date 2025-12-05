@@ -7,10 +7,12 @@ import com.ecommerce.WildMartV1.citccs.model.Order;
 import com.ecommerce.WildMartV1.citccs.model.OrderItem;
 import com.ecommerce.WildMartV1.citccs.model.Product;
 import com.ecommerce.WildMartV1.citccs.model.User;
+import com.ecommerce.WildMartV1.citccs.model.Voucher;
 import com.ecommerce.WildMartV1.citccs.repository.CartRepository;
 import com.ecommerce.WildMartV1.citccs.repository.OrderRepository;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
 import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
+import com.ecommerce.WildMartV1.citccs.repository.VoucherRepository;
 import com.ecommerce.WildMartV1.citccs.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -39,6 +42,7 @@ public class OrderController {
     private final UserService userService;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final VoucherRepository voucherRepository;
 
     @GetMapping("/user/orders/{orderId}")
     public ResponseEntity<?> getOrderById(
@@ -163,6 +167,76 @@ public class OrderController {
                 productRepository.save(product);
             }
             
+            // Apply voucher discount if provided
+            String voucherCode = checkoutData.get("voucherCode");
+            BigDecimal discountAmount = BigDecimal.ZERO;
+            if (voucherCode != null && !voucherCode.trim().isEmpty()) {
+                Optional<Voucher> voucherOpt = voucherRepository.findByDiscountCode(voucherCode.trim());
+                if (voucherOpt.isPresent()) {
+                    Voucher voucher = voucherOpt.get();
+                    
+                    // Validate voucher
+                    if (!voucher.getIsActive()) {
+                        return ResponseEntity.badRequest()
+                                .body(Map.of("error", "This voucher is no longer active"));
+                    }
+                    
+                    if (voucher.getValidFrom().isAfter(LocalDateTime.now())) {
+                        return ResponseEntity.badRequest()
+                                .body(Map.of("error", "This voucher is not yet valid"));
+                    }
+                    
+                    if (voucher.getValidUntil().isBefore(LocalDateTime.now())) {
+                        return ResponseEntity.badRequest()
+                                .body(Map.of("error", "This voucher has expired"));
+                    }
+                    
+                    if (voucher.getUsageLimit() != null && 
+                        voucher.getUsageCount() >= voucher.getUsageLimit()) {
+                        return ResponseEntity.badRequest()
+                                .body(Map.of("error", "This voucher has reached its usage limit"));
+                    }
+                    
+                    if (voucher.getMinimumOrderAmount() != null && 
+                        totalAmount.compareTo(voucher.getMinimumOrderAmount()) < 0) {
+                        return ResponseEntity.badRequest()
+                                .body(Map.of("error", "Minimum order amount not met for this voucher"));
+                    }
+                    
+                    // Apply discount based on type
+                    switch (voucher.getDiscountType()) {
+                        case PERCENTAGE:
+                            discountAmount = totalAmount.multiply(voucher.getDiscountValue())
+                                    .divide(BigDecimal.valueOf(100));
+                            break;
+                        case FIXED_AMOUNT:
+                            discountAmount = voucher.getDiscountValue();
+                            break;
+                        case SHIPPING:
+                            // For simplicity, we're applying a fixed shipping discount
+                            discountAmount = BigDecimal.valueOf(50); // Assuming ₱50 shipping fee
+                            break;
+                    }
+                    
+                    // Ensure discount doesn't exceed total amount
+                    if (discountAmount.compareTo(totalAmount) > 0) {
+                        discountAmount = totalAmount;
+                    }
+                    
+                    // Set the voucher on the order
+                    order.setDiscount(voucher);
+                    
+                    // Increment usage count
+                    voucher.setUsageCount(voucher.getUsageCount() + 1);
+                    voucherRepository.save(voucher);
+                } else {
+                    return ResponseEntity.badRequest()
+                            .body(Map.of("error", "Invalid voucher code"));
+                }
+            }
+            
+            // Apply discount to total
+            totalAmount = totalAmount.subtract(discountAmount);
             order.setTotalAmount(totalAmount);
             order.setOrderDate(LocalDateTime.now());
             order.setUpdatedAt(LocalDateTime.now());
@@ -179,6 +253,7 @@ public class OrderController {
             response.put("orderId", order.getOrderId());
             response.put("orderNumber", order.getOrderNumber());
             response.put("totalAmount", order.getTotalAmount());
+            response.put("discountAmount", discountAmount);
             response.put("orderStatus", order.getOrderStatus());
             response.put("paymentStatus", order.getPaymentStatus());
             response.put("shippingAddress", order.getShippingAddress());
