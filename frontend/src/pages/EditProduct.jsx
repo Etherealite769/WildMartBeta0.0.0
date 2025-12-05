@@ -4,9 +4,47 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import ConfirmModal from '../components/ConfirmModal';
-import { supabase } from '../utils/supabase'; // Import Supabase client
-import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique filenames
+import { supabase } from '../utils/supabase';
+import { v4 as uuidv4 } from 'uuid';
+import Cropper from 'react-easy-crop';
 import '../styles/AddProduct.css';
+
+// Helper function to create cropped image
+const createImage = (url) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.setAttribute('crossOrigin', 'anonymous');
+    image.src = url;
+  });
+
+const getCroppedImg = async (imageSrc, pixelCrop) => {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob);
+    }, 'image/jpeg', 0.9);
+  });
+};
 
 const EditProduct = () => {
   const navigate = useNavigate();
@@ -18,8 +56,8 @@ const EditProduct = () => {
     price: '',
     stock: '',
     status: 'active',
-    images: [], // Will store File objects for new images
-    imageUrl: '', // Will store the existing image URL
+    images: [],
+    imageUrl: '',
     sellerId: null,
     isOwner: true
   });
@@ -33,6 +71,13 @@ const EditProduct = () => {
     onConfirm: null,
     type: 'default'
   });
+  
+  // Cropping states
+  const [imageToCrop, setImageToCrop] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [showCropper, setShowCropper] = useState(false);
 
   useEffect(() => {
     fetchProductDetails();
@@ -71,8 +116,8 @@ const EditProduct = () => {
         price: product.price || '',
         stock: product.quantityAvailable || '',
         status: product.status || 'active',
-        images: [], // Start with empty array for new images
-        imageUrl: product.imageUrl || '', // Keep existing image URL
+        images: [],
+        imageUrl: product.imageUrl || '',
         sellerId: product.sellerId,
         isOwner: isOwner
       });
@@ -107,13 +152,48 @@ const EditProduct = () => {
   };
 
   const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    
-    // Store File objects for new images to be uploaded
-    setProductData(prev => ({
-      ...prev,
-      images: files // Replace with new files instead of appending
-    }));
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result);
+        setShowCropper(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleCropConfirm = async () => {
+    try {
+      const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      
+      // Convert blob to file
+      const croppedFile = new File([croppedBlob], `cropped-${Date.now()}.jpg`, {
+        type: 'image/jpeg'
+      });
+      
+      setProductData(prev => ({
+        ...prev,
+        images: [croppedFile]
+      }));
+      
+      setShowCropper(false);
+      setImageToCrop(null);
+    } catch (error) {
+      console.error('Error cropping image:', error);
+      toast.error('Failed to crop image. Please try again.');
+    }
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setImageToCrop(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
   };
 
   const removeImage = (index) => {
@@ -225,7 +305,7 @@ const EditProduct = () => {
         price: parseFloat(productData.price),
         quantityAvailable: parseInt(productData.stock),
         status: productData.status,
-        imageUrl: imageUrl, // Use either existing or newly uploaded image URL
+        imageUrl: imageUrl,
         categoryName: productData.category
       };
 
@@ -355,6 +435,53 @@ const EditProduct = () => {
   return (
     <div>
       <Navbar />
+      
+      {/* Cropping Modal */}
+      {showCropper && (
+        <div className="cropper-modal">
+          <div className="cropper-overlay" onClick={handleCropCancel}></div>
+          <div className="cropper-container">
+            <div className="cropper-header">
+              <h3>Crop Image</h3>
+              <button className="cropper-close" onClick={handleCropCancel}>×</button>
+            </div>
+            <div className="cropper-content">
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+                cropShape="rect"
+              />
+            </div>
+            <div className="cropper-controls">
+              <div className="zoom-control">
+                <label>Zoom:</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.1"
+                  value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))}
+                />
+              </div>
+              <div className="cropper-actions">
+                <button className="btn-cancel" onClick={handleCropCancel}>
+                  Cancel
+                </button>
+                <button className="btn-confirm" onClick={handleCropConfirm}>
+                  Confirm Crop
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="add-product-main">
         <div className="add-product-header">
           <h2>Edit Product</h2>
