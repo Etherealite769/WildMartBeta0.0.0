@@ -151,6 +151,15 @@ public class CartController {
             return ResponseEntity.ok(response);
         }
         
+        // Validate stock availability
+        Product product = item.getProduct();
+        if (product.getQuantityAvailable() < quantity) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Only " + product.getQuantityAvailable() + " item" + 
+                    (product.getQuantityAvailable() != 1 ? "s" : "") + " available in stock");
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+        
         item.setQuantity(quantity);
         cartItemRepository.save(item);
         
