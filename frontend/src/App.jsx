@@ -18,7 +18,7 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import SuccessfulBuy from './pages/SuccessfulBuy';
 import ProductDetails from './pages/ProductDetails';
-import RecentlyViewed from './pages/RecentlyViewed';
+
 import AccountInformation from './pages/AccountInformation';
 import AddProduct from './pages/AddProduct';
 import EditProduct from './pages/EditProduct';
@@ -125,10 +125,7 @@ function App() {
             path="/product/:id" 
             element={<ProductDetails />} 
           />
-          <Route 
-            path="/recently-viewed" 
-            element={isAuthenticated ? <RecentlyViewed /> : <Navigate to="/login" />} 
-          />
+
           <Route 
             path="/account" 
             element={isAuthenticated ? <AccountInformation /> : <Navigate to="/login" />} 
