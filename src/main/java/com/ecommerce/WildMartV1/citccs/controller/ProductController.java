@@ -105,6 +105,16 @@ public class ProductController {
         
         // Add seller info - important for ownership verification
         if (product.getSeller() != null) {
+            Map<String, Object> sellerMap = new HashMap<>();
+            sellerMap.put("userId", product.getSeller().getUserId());
+            sellerMap.put("fullName", product.getSeller().getFullName());
+            sellerMap.put("username", product.getSeller().getUsername());
+            sellerMap.put("email", product.getSeller().getEmail());
+            sellerMap.put("profileImage", product.getSeller().getProfileImage());
+            sellerMap.put("rating", 0); // Default rating
+            productMap.put("seller", sellerMap);
+            
+            // Keep legacy fields for backward compatibility
             productMap.put("sellerId", product.getSeller().getUserId());
             productMap.put("sellerName", product.getSeller().getFullName() != null ? product.getSeller().getFullName() : product.getSeller().getUsername());
             productMap.put("sellerEmail", product.getSeller().getEmail());
