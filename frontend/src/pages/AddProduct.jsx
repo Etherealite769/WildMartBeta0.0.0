@@ -93,18 +93,20 @@ const publishProduct = async () => {
       const imageFile = productData.images[0];
       // Generate a unique filename for Supabase storage
       const fileName = `${uuidv4()}-${imageFile.name}`;
-      const filePath = `products/${fileName}`; // Folder structure within the bucket
+      const filePath = `${fileName}`; // Simplified path - no subfolder
 
-      // Upload image to Supabase storage bucket "Products Image"
+      // Upload image to Supabase storage bucket "product-images"
       const { data, error } = await supabase.storage
         .from('product-images')
         .upload(filePath, imageFile, {
-          cacheControl: '3600', // Cache for 1 hour
-          upsert: false // Do not overwrite if file exists
+          cacheControl: '3600',
+          upsert: true, // Allow overwriting if needed
+          contentType: imageFile.type // Explicitly set content type
         });
 
       if (error) {
-        throw new Error('Supabase image upload failed: ' + error.message);
+        console.error('Supabase upload error:', error);
+        throw new Error('Image upload failed: ' + error.message + '. Please check if the storage bucket is properly configured with public access.');
       }
 
       // Get the public URL of the uploaded image
@@ -113,6 +115,7 @@ const publishProduct = async () => {
         .getPublicUrl(filePath);
 
       imageUrl = publicUrlData.publicUrl;
+      console.log('Image uploaded successfully:', imageUrl);
     }
 
     const productDataToSend = {

@@ -131,7 +131,7 @@ const Cart = () => {
         <h2>Shopping Cart</h2>
 
         {cartItems.length > 0 ? (
-          <>
+          <div className="cart-content">
             <div className="cart-items">
               {cartItems.map(item => {
                 const productName = item.product?.productName || item.product?.name || 'Product';
@@ -191,7 +191,7 @@ const Cart = () => {
                     <div className="item-details">
                       <h3>{productName}</h3>
                       <p className="item-seller">by {sellerName}</p>
-                      <p className="unit-price">Unit Price: ₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <p className="unit-price">₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                     <div className="item-quantity-controls">
                       <button 
@@ -208,10 +208,8 @@ const Cart = () => {
                         +
                       </button>
                     </div>
-                    <div className="cart-item-actions">
-                      <div className="item-total">
-                        <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      </div>
+                    <div className="item-total">
+                      <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                 );
@@ -238,7 +236,7 @@ const Cart = () => {
                 Proceed to Checkout
               </button>
             </div>
-          </>
+          </div>
         ) : (
           <div className="empty-cart">
             <div className="empty-cart-icon">
