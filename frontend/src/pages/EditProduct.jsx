@@ -4,6 +4,8 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import ConfirmModal from '../components/ConfirmModal';
+import { supabase } from '../utils/supabase'; // Import Supabase client
+import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique filenames
 import '../styles/AddProduct.css';
 
 const EditProduct = () => {
@@ -16,8 +18,8 @@ const EditProduct = () => {
     price: '',
     stock: '',
     status: 'active',
-    images: [],
-    imageUrl: '',
+    images: [], // Will store File objects for new images
+    imageUrl: '', // Will store the existing image URL
     sellerId: null,
     isOwner: true
   });
@@ -69,8 +71,8 @@ const EditProduct = () => {
         price: product.price || '',
         stock: product.quantityAvailable || '',
         status: product.status || 'active',
-        images: product.imageUrl ? [product.imageUrl] : [],
-        imageUrl: product.imageUrl || '',
+        images: [], // Start with empty array for new images
+        imageUrl: product.imageUrl || '', // Keep existing image URL
         sellerId: product.sellerId,
         isOwner: isOwner
       });
@@ -106,11 +108,11 @@ const EditProduct = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    const imageUrls = files.map(file => URL.createObjectURL(file));
     
+    // Store File objects for new images to be uploaded
     setProductData(prev => ({
       ...prev,
-      images: [...prev.images, ...imageUrls]
+      images: files // Replace with new files instead of appending
     }));
   };
 
@@ -184,6 +186,38 @@ const EditProduct = () => {
         return;
       }
       
+      // Handle image upload if new images are selected
+      let imageUrl = productData.imageUrl; // Default to existing image
+      
+      if (productData.images.length > 0) {
+        const imageFile = productData.images[0];
+        // Generate a unique filename for Supabase storage
+        const fileName = `${uuidv4()}-${imageFile.name}`;
+        const filePath = `${fileName}`;
+
+        // Upload image to Supabase storage bucket "product-images"
+        const { data, error } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, imageFile, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: imageFile.type
+          });
+
+        if (error) {
+          console.error('Supabase upload error:', error);
+          throw new Error('Image upload failed: ' + error.message);
+        }
+
+        // Get the public URL of the uploaded image
+        const { data: publicUrlData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+
+        imageUrl = publicUrlData.publicUrl;
+        console.log('Image uploaded successfully:', imageUrl);
+      }
+      
       // Build the update payload matching ProductDTO expected by backend
       const updatePayload = {
         productName: productData.productName,
@@ -191,7 +225,7 @@ const EditProduct = () => {
         price: parseFloat(productData.price),
         quantityAvailable: parseInt(productData.stock),
         status: productData.status,
-        imageUrl: productData.imageUrl || (productData.images.length > 0 ? productData.images[0] : null),
+        imageUrl: imageUrl, // Use either existing or newly uploaded image URL
         categoryName: productData.category
       };
 
@@ -432,13 +466,26 @@ const EditProduct = () => {
                   <span>or drag and drop</span>
                 </label>
                 
+                {/* Preview existing image if no new image selected */}
+                {productData.images.length === 0 && productData.imageUrl && (
+                  <div className="uploaded-images">
+                    <h4>Current Product Image</h4>
+                    <div className="image-preview-grid">
+                      <div className="image-preview-item">
+                        <img src={productData.imageUrl} alt="Current product" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Preview new images if selected */}
                 {productData.images.length > 0 && (
                   <div className="uploaded-images">
-                    <h4>Product Image</h4>
+                    <h4>New Product Image</h4>
                     <div className="image-preview-grid">
                       {productData.images.map((image, index) => (
                         <div key={index} className="image-preview-item">
-                          <img src={image} alt={`Product ${index + 1}`} />
+                          <img src={URL.createObjectURL(image)} alt={`Product ${index + 1}`} />
                           <button 
                             type="button" 
                             className="remove-image-btn"
@@ -485,15 +532,19 @@ const EditProduct = () => {
             <div className="preview-content">
               <h3>Product Detail</h3>
               <div className="preview-image-section">
-                {productData.images.length > 0 ? (
+                {(productData.images.length > 0 ? (
                   <div className="preview-main-image">
-                    <img src={productData.images[0]} alt="Product preview" />
+                    <img src={URL.createObjectURL(productData.images[0])} alt="Product preview" />
+                  </div>
+                ) : productData.imageUrl ? (
+                  <div className="preview-main-image">
+                    <img src={productData.imageUrl} alt="Product preview" />
                   </div>
                 ) : (
                   <div className="preview-image-placeholder">
                     No image uploaded
                   </div>
-                )}
+                ))}
               </div>
               <h4>{productData.productName || 'Product Name'}</h4>
               <p>{productData.description || 'Product details here!'}</p>

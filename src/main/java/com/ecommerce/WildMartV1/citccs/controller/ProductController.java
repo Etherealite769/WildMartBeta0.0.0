@@ -276,7 +276,10 @@ public class ProductController {
         // Handle image upload if provided
         if (image != null && !image.isEmpty()) {
             try {
-                String imageUrl = env.getProperty("supabase.public.url") + "/storage/v1/object/public/product-images/" + image.getOriginalFilename();
+                String baseUrl = env.getProperty("supabase.public.url");
+                String bucketName = "product-images";
+                String fileName = image.getOriginalFilename();
+                String imageUrl = String.format("%s/storage/v1/object/public/%s/%s", baseUrl, bucketName, fileName);
                 product.setImageUrl(imageUrl);
             } catch (Exception e) {
                 return ResponseEntity.badRequest().body("Failed to process image: " + e.getMessage());
