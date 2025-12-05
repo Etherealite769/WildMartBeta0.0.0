@@ -55,21 +55,42 @@ const Cart = () => {
     
     if (newQuantity < 0) return;
     
+    // Check stock availability before updating
+    const item = cartItems.find(item => item.id === itemId);
+    const availableStock = item?.product?.quantityAvailable;
+    
+    if (availableStock !== undefined && newQuantity > availableStock) {
+      toast.error(`Only ${availableStock} item${availableStock !== 1 ? 's' : ''} available in stock`);
+      return;
+    }
+    
+    // Optimistically update the local state first to avoid page reload
+    setCartItems(prevItems => 
+      prevItems.map(item => 
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      )
+    );
+    
     try {
       await axios.put(`http://localhost:8080/api/cart/items/${itemId}`, 
         { quantity: newQuantity },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
-      fetchCart();
-      toast.success('Quantity updated successfully');
+      // No toast notification - silent update as requested
     } catch (error) {
       console.error('Error updating quantity:', error);
+      
+      // Revert the optimistic update on error
+      fetchCart();
       
       if (error.response?.status === 403) {
         toast.error('Authorization failed. Your session may have expired. Please log in again.');
         setTimeout(() => {
           navigate('/login');
         }, 3000);
+      } else if (error.response?.status === 400 && error.response?.data?.error) {
+        // Handle specific error messages from backend (e.g., stock validation)
+        toast.error(error.response.data.error);
       } else {
         toast.error('Failed to update quantity. Please try again.');
       }
