@@ -32,7 +32,7 @@ const SuccessfulBuy = () => {
           {orderData.totalAmount && (
             <div className="detail-row">
               <span>Total Amount:</span>
-              <strong>₱{Number(orderData.totalAmount).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+              <strong>₱{Number(orderData.totalAmount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
           )}
           {orderData.paymentMethod && (

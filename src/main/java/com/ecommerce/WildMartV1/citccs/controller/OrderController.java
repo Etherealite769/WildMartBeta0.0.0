@@ -40,11 +40,55 @@ public class OrderController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
 
+    @GetMapping("/user/orders/{orderId}")
+    public ResponseEntity<?> getOrderById(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Integer orderId) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            User user = userService.getUserById(userId);
+            
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+            
+            // Verify that the order belongs to the user
+            if (!order.getBuyer().getUserId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized access to this order"));
+            }
+            
+            // Force load lazy relationships
+            order.getItems().size();
+            order.getItems().forEach(item -> {
+                if (item.getProduct() != null) {
+                    item.getProduct().getProductName();
+                }
+            });
+            
+            return ResponseEntity.ok(order);
+        } catch (Exception e) {
+            log.error("Error fetching order details", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch order: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/user/orders")
     public ResponseEntity<List<Order>> getUserOrders(@RequestHeader("Authorization") String token) {
         Integer userId = extractUserIdFromToken(token);
         User user = userService.getUserById(userId);
         List<Order> orders = orderRepository.findByBuyerOrderByOrderDateDesc(user);
+        
+        // Force load lazy relationships to avoid serialization issues
+        orders.forEach(order -> {
+            order.getItems().size(); // Initialize items collection
+            order.getItems().forEach(item -> {
+                if (item.getProduct() != null) {
+                    item.getProduct().getProductName(); // Initialize product
+                }
+            });
+        });
+        
         return ResponseEntity.ok(orders);
     }
 

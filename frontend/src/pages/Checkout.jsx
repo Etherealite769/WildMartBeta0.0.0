@@ -153,10 +153,10 @@ const Checkout = () => {
                     </div>
                     <div className="order-item-details">
                       <h4>{productName}</h4>
-                      <p className="order-item-price">₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })} × {item.quantity}</p>
+                      <p className="order-item-price">₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × {item.quantity}</p>
                     </div>
                     <div className="order-item-total">
-                      <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                      <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                 );
@@ -166,7 +166,7 @@ const Checkout = () => {
             <div className="order-summary-total">
               <div className="summary-row">
                 <span>Subtotal:</span>
-                <span>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                <span>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="summary-row">
                 <span>Shipping:</span>
@@ -174,7 +174,7 @@ const Checkout = () => {
               </div>
               <div className="summary-row total-row">
                 <strong>Total:</strong>
-                <strong>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+                <strong>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
             </div>
           </div>
