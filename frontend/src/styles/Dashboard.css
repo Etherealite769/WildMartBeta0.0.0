@@ -1,6 +1,6 @@
 .dashboard {
-  min-height: 100%;
-  background-color: #FFFFFF; /* Light gold background */
+  min-height: 100vh;
+  background-color: #FFFFFF;
   padding-bottom: 40px;
 }
 
@@ -16,7 +16,7 @@
 
 .dashboard-header h2 {
   font-size: 32px;
-  color: #800000; /* Maroon */
+  color: #800000;
   margin-bottom: 20px;
   position: relative;
   display: inline-block;
@@ -30,7 +30,7 @@
   left: 0;
   width: 60px;
   height: 4px;
-  background: #FFBF00; /* Gold */
+  background: #FFBF00;
   border-radius: 2px;
 }
 
@@ -52,17 +52,18 @@
 .search-bar input {
   width: 100%;
   padding: 14px 20px;
-  border: 2px solid #FFE6A7; /* Light gold border */
+  border: 2px solid #FFE6A7;
   border-radius: 10px;
   font-size: 16px;
   transition: all 0.3s ease;
   background-color: white;
   box-shadow: 0 2px 8px rgba(128, 0, 0, 0.05);
+  box-sizing: border-box;
 }
 
 .search-bar input:focus {
   outline: none;
-  border-color: #FFBF00; /* Gold */
+  border-color: #FFBF00;
   box-shadow: 0 0 0 3px rgba(255, 191, 0, 0.2);
 }
 
@@ -75,11 +76,11 @@
 .category-dropdown select {
   width: 100%;
   padding: 14px 16px;
-  border: 2px solid #FFE6A7; /* Light gold border */
+  border: 2px solid #FFE6A7;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #800000; /* Maroon */
+  color: #800000;
   background-color: white;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -89,11 +90,12 @@
   background-size: 12px;
   box-shadow: 0 2px 8px rgba(128, 0, 0, 0.05);
   outline: none;
+  box-sizing: border-box;
 }
 
 .category-dropdown select:focus {
   outline: none;
-  border-color: #FFBF00; /* Gold */
+  border-color: #FFBF00;
   box-shadow: 0 0 0 3px rgba(255, 191, 0, 0.2);
   background-color: white;
 }
@@ -104,37 +106,41 @@
   padding: 10px;
 }
 
+/* Filter Buttons Container */
+.filter-buttons-container {
+  margin-bottom: 30px;
+}
+
 /* Filter Buttons */
 .filter-buttons {
   display: flex;
-  gap: 40.5px;
-  margin-bottom: 30px;
+  gap: 20px;
   flex-wrap: wrap;
-  padding: 4px 0;
 }
 
 .filter-btn {
-  padding: 10px 24px;
-  border: 2px solid #FFE6A7; /* Light gold border */
+  padding: 14px 24px;
+  border: 2px solid #FFE6A7;
   background-color: white;
-  border-radius: 25px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #800000; /* Maroon */
+  color: #800000;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
 }
 
 .filter-btn:hover {
-  border-color: #FFBF00; /* Gold */
+  border-color: #FFBF00;
   color: #800000;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(255, 191, 0, 0.2);
 }
 
 .filter-btn.active {
-  background-color: #800000; /* Maroon */
+  background-color: #800000;
   color: white;
   border-color: #800000;
   box-shadow: 0 4px 12px rgba(128, 0, 0, 0.2);
@@ -225,7 +231,7 @@
   }
 
   .filter-btn {
-    padding: 8px 16px;
+    padding: 12px 16px;
     font-size: 13px;
   }
 }
@@ -241,7 +247,7 @@
   }
 
   .filter-btn {
-    padding: 8px 12px;
+    padding: 10px 12px;
     font-size: 12px;
   }
 }

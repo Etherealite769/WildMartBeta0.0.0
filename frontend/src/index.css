@@ -17,3 +17,22 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Ensure proper viewport handling */
+@media screen and (orientation: landscape) {
+  body {
+    font-size: 1vh; /* Use height-based sizing for landscape */
+  }
+}
+
+@media screen and (max-width: 768px) {
+  body {
+    font-size: 1.5vw; /* Larger font size for smaller screens */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 2vw; /* Even larger font size for very small screens */
+  }
+}
