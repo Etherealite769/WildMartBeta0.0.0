@@ -56,6 +56,12 @@ const OrderDetails = () => {
     );
   }
 
+  // Calculate values for display
+  const totalAmount = Number(order.totalAmount) || 0;
+  const discountAmount = Number(order.discountAmount) || 0;
+  const shippingFee = Number(order.shippingFee) || (totalAmount * 0.05); // Default to 5% if not provided
+  const subtotal = totalAmount + discountAmount - shippingFee;
+
   return (
     <div className="order-details-page">
       <Navbar />
@@ -103,8 +109,30 @@ const OrderDetails = () => {
             <div className="summary-right">
               <div className="summary-item">
                 <label>Total Amount</label>
-                <p className="total-amount">₱{Number(order.totalAmount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="total-amount">₱{totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
+            </div>
+          </div>
+
+          {/* Detailed Pricing Breakdown */}
+          <div className="pricing-breakdown">
+            <div className="summary-row">
+              <span>Subtotal:</span>
+              <span>₱{subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="summary-row">
+              <span>Shipping (5%):</span>
+              <span>₱{shippingFee.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            {discountAmount > 0 && (
+              <div className="summary-row discount-row">
+                <span>Discount:</span>
+                <span>-₱{discountAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            )}
+            <div className="summary-row total-row">
+              <strong>Total:</strong>
+              <strong>₱{totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
           </div>
 

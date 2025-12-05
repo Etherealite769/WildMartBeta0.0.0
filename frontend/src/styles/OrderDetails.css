@@ -142,6 +142,37 @@
   border: 1px solid #FFCCCC;
 }
 
+/* Pricing Breakdown */
+.pricing-breakdown {
+  background: #FFF9E6;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #FFE6A7;
+}
+
+.pricing-breakdown .summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.pricing-breakdown .summary-row.discount-row {
+  color: #800000;
+  font-weight: 600;
+}
+
+.pricing-breakdown .summary-row.total-row {
+  border-top: 1px solid #FFE6A7;
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #800000;
+}
+
 /* Shipping Address */
 .shipping-address-compact {
   display: flex;
@@ -333,5 +364,19 @@
   .shipping-address-compact {
     flex-direction: column;
     gap: 4px;
+  }
+  
+  .pricing-breakdown {
+    padding: 12px;
+  }
+  
+  .pricing-breakdown .summary-row {
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  
+  .pricing-breakdown .summary-row.total-row {
+    font-size: 15px;
+    padding-top: 10px;
   }
 }

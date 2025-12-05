@@ -198,6 +198,41 @@
   gap: 8px;
 }
 
+.order-pricing-breakdown {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #FFE6A7;
+}
+
+.pricing-breakdown-compact {
+  background: #FFF9E6;
+  border-radius: 6px;
+  padding: 12px;
+  border: 1px solid #FFE6A7;
+}
+
+.pricing-breakdown-compact .summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+  color: #333;
+}
+
+.pricing-breakdown-compact .summary-row.discount-row {
+  color: #800000;
+  font-weight: 600;
+}
+
+.pricing-breakdown-compact .summary-row.total-row {
+  border-top: 1px solid #FFE6A7;
+  margin-top: 6px;
+  padding-top: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #800000;
+}
+
 .order-item-compact {
   display: grid;
   grid-template-columns: 50px 2fr 0.8fr 0.8fr;
