@@ -61,9 +61,15 @@
   font-weight: 700;
 }
 
-/* Order Summary Section */
+/* Order Summary Section - Floating/Sticky */
 .order-summary-section {
   height: fit-content;
+  position: sticky;
+  top: 100px; /* Adjust based on navbar height */
+  align-self: start;
+  max-height: calc(100vh - 120px); /* Prevent overflow */
+  overflow-y: auto; /* Allow scrolling if content is too tall */
+  z-index: 10;
 }
 
 .order-items {
@@ -501,6 +507,12 @@
 @media (max-width: 1024px) {
   .checkout-content {
     grid-template-columns: 1fr;
+  }
+  
+  .order-summary-section {
+    position: static; /* Remove sticky on smaller screens */
+    max-height: none;
+    overflow-y: visible;
   }
 }
 

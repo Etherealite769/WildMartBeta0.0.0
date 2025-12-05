@@ -230,7 +230,7 @@ const Checkout = () => {
         <h2>Checkout</h2>
 
         <div className="checkout-content">
-          {/* Order Summary */}
+          {/* Order Summary - Will be sticky/floating */}
           <div className="checkout-section order-summary-section">
             <h3>Order Summary</h3>
             <div className="order-items">
@@ -419,7 +419,7 @@ const Checkout = () => {
                     <small>Pay when you receive your order</small>
                   </span>
                 </label>
-
+                
                 <label className="payment-option">
                   <input
                     type="radio"
@@ -430,10 +430,10 @@ const Checkout = () => {
                   />
                   <span className="payment-label">
                     <strong>GCash</strong>
-                    <small>Digital wallet payment</small>
+                    <small>Pay via GCash mobile payment</small>
                   </span>
                 </label>
-
+                
                 <label className="payment-option">
                   <input
                     type="radio"
@@ -444,7 +444,7 @@ const Checkout = () => {
                   />
                   <span className="payment-label">
                     <strong>Bank Transfer</strong>
-                    <small>Direct bank-to-bank transfer</small>
+                    <small>Transfer to our bank account</small>
                   </span>
                 </label>
               </div>
@@ -456,7 +456,7 @@ const Checkout = () => {
                 onClick={() => navigate('/cart')}
                 disabled={processing}
               >
-                Back to Cart
+                ← Back to Cart
               </button>
               <button 
                 className="btn-place-order"
