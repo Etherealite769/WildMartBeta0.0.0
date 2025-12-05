@@ -14,21 +14,27 @@ const Navbar = () => {
 
   useEffect(() => {
     fetchUserProfile();
-  }, []);
+  }, [location]); // Add location as dependency to fetch on route change
 
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        const response = await axios.get('http://localhost:8080/api/user/profile', {
+        // Add cache-busting parameter
+        const timestamp = Date.now();
+        const response = await axios.get(`http://localhost:8080/api/user/profile?t=${timestamp}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (response.data.profileImage) {
           setProfileImage(response.data.profileImage);
+        } else {
+          setProfileImage(null); // Reset to null if no profile image
         }
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      // Reset profile image on error
+      setProfileImage(null);
     }
   };
 
@@ -37,6 +43,7 @@ const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setProfileImage(null); // Clear profile image on logout
     navigate('/login');
   };
 
@@ -62,9 +69,20 @@ const Navbar = () => {
             <button className="user-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               <div className="user-avatar">
                 {profileImage ? (
-                  <img src={profileImage} alt="Profile" className="avatar-img" />
+                  <img 
+                    src={`${profileImage}?t=${Date.now()}`} 
+                    alt="Profile" 
+                    className="avatar-img"
+                    onError={(e) => {
+                      // Handle image load error by resetting profile image
+                      setProfileImage(null);
+                      e.target.onerror = null;
+                    }}
+                  />
                 ) : (
-                  user?.username?.charAt(0).toUpperCase() || 'U'
+                  <div className="avatar-placeholder">
+                    {user?.username?.charAt(0).toUpperCase() || 'U'}
+                  </div>
                 )}
               </div>
             </button>
