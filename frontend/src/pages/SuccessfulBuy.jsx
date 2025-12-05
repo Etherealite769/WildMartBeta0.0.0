@@ -8,6 +8,14 @@ const SuccessfulBuy = () => {
   const location = useLocation();
   const orderData = location.state?.orderData || {};
 
+  // Calculate shipping fee and subtotal for display
+  const totalAmount = Number(orderData.totalAmount) || 0;
+  const discountAmount = Number(orderData.discountAmount) || 0;
+  const shippingFee = Number(orderData.shippingFee) || 0;
+  
+  // Calculate subtotal: total + discount - shipping
+  const subtotal = totalAmount + discountAmount - shippingFee;
+
   return (
     <div className="success-page">
       <Navbar />
@@ -29,12 +37,30 @@ const SuccessfulBuy = () => {
               <strong>{orderData.orderNumber}</strong>
             </div>
           )}
-          {orderData.totalAmount && (
-            <div className="detail-row">
-              <span>Total Amount:</span>
-              <strong>₱{Number(orderData.totalAmount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+          
+          {/* Display detailed pricing breakdown */}
+          <div className="detail-row">
+            <span>Subtotal:</span>
+            <strong>₱{subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+          </div>
+          
+          <div className="detail-row">
+            <span>Shipping (5%):</span>
+            <span>₱{shippingFee.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+          
+          {discountAmount > 0 && (
+            <div className="detail-row discount-row">
+              <span>Discount:</span>
+              <span>-₱{discountAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
+          
+          <div className="detail-row total-row">
+            <span>Total Amount:</span>
+            <strong>₱{totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+          </div>
+          
           {orderData.paymentMethod && (
             <div className="detail-row">
               <span>Payment Method:</span>

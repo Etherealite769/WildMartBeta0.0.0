@@ -87,6 +87,11 @@ const Checkout = () => {
     setTotal(sum);
   };
 
+  const calculateShippingFee = () => {
+    // 5% shipping fee based on subtotal
+    return total * 0.05;
+  };
+
   const calculateDiscount = () => {
     if (!selectedVoucher) return 0;
     
@@ -94,6 +99,8 @@ const Checkout = () => {
       const price = item.priceAtAddition || item.product?.price || 0;
       return acc + (Number(price) * item.quantity);
     }, 0);
+    
+    const shippingFee = calculateShippingFee();
     
     let discount = 0;
     
@@ -105,14 +112,15 @@ const Checkout = () => {
         discount = selectedVoucher.discountValue;
         break;
       case 'SHIPPING':
-        discount = 50; // Assuming ₱50 shipping fee
+        discount = shippingFee; // Free shipping
         break;
       default:
         discount = 0;
     }
     
-    // Ensure discount doesn't exceed subtotal
-    return Math.min(discount, subtotal);
+    // Ensure discount doesn't exceed subtotal + shipping
+    const maxDiscount = subtotal + shippingFee;
+    return Math.min(discount, maxDiscount);
   };
 
   const getGrandTotal = () => {
@@ -121,7 +129,8 @@ const Checkout = () => {
       return acc + (Number(price) * item.quantity);
     }, 0);
     
-    return subtotal - calculateDiscount();
+    const shippingFee = calculateShippingFee();
+    return subtotal + shippingFee - calculateDiscount();
   };
 
   const handleApplyVoucher = () => {
@@ -210,6 +219,7 @@ const Checkout = () => {
   }
 
   const discountAmount = calculateDiscount();
+  const shippingFee = calculateShippingFee();
   const grandTotal = getGrandTotal();
 
   return (
@@ -260,6 +270,11 @@ const Checkout = () => {
                 <span>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               
+              <div className="summary-row">
+                <span>Shipping (5%):</span>
+                <span>₱{shippingFee.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              
               {selectedVoucher && (
                 <div className="summary-row discount-row">
                   <span>Discount ({selectedVoucher.discountCode}):</span>
@@ -267,10 +282,6 @@ const Checkout = () => {
                 </div>
               )}
               
-              <div className="summary-row">
-                <span>Shipping:</span>
-                <span>₱0.00</span>
-              </div>
               <div className="summary-row total-row">
                 <strong>Total:</strong>
                 <strong>₱{grandTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>

@@ -167,6 +167,9 @@ public class OrderController {
                 productRepository.save(product);
             }
             
+            // Calculate shipping fee (5% of subtotal)
+            BigDecimal shippingFee = totalAmount.multiply(BigDecimal.valueOf(0.05));
+            
             // Apply voucher discount if provided
             String voucherCode = checkoutData.get("voucherCode");
             BigDecimal discountAmount = BigDecimal.ZERO;
@@ -213,14 +216,15 @@ public class OrderController {
                             discountAmount = voucher.getDiscountValue();
                             break;
                         case SHIPPING:
-                            // For simplicity, we're applying a fixed shipping discount
-                            discountAmount = BigDecimal.valueOf(50); // Assuming ₱50 shipping fee
+                            // Free shipping discount
+                            discountAmount = shippingFee;
                             break;
                     }
                     
-                    // Ensure discount doesn't exceed total amount
-                    if (discountAmount.compareTo(totalAmount) > 0) {
-                        discountAmount = totalAmount;
+                    // Ensure discount doesn't exceed total amount + shipping
+                    BigDecimal maxDiscount = totalAmount.add(shippingFee);
+                    if (discountAmount.compareTo(maxDiscount) > 0) {
+                        discountAmount = maxDiscount;
                     }
                     
                     // Set the voucher on the order
@@ -235,8 +239,8 @@ public class OrderController {
                 }
             }
             
-            // Apply discount to total
-            totalAmount = totalAmount.subtract(discountAmount);
+            // Add shipping fee to total, then apply discount
+            totalAmount = totalAmount.add(shippingFee).subtract(discountAmount);
             order.setTotalAmount(totalAmount);
             order.setOrderDate(LocalDateTime.now());
             order.setUpdatedAt(LocalDateTime.now());
@@ -252,8 +256,10 @@ public class OrderController {
             Map<String, Object> response = new HashMap<>();
             response.put("orderId", order.getOrderId());
             response.put("orderNumber", order.getOrderNumber());
-            response.put("totalAmount", order.getTotalAmount());
+            response.put("subtotal", totalAmount.subtract(shippingFee).add(discountAmount)); // Original subtotal
+            response.put("shippingFee", shippingFee);
             response.put("discountAmount", discountAmount);
+            response.put("totalAmount", order.getTotalAmount());
             response.put("orderStatus", order.getOrderStatus());
             response.put("paymentStatus", order.getPaymentStatus());
             response.put("shippingAddress", order.getShippingAddress());
