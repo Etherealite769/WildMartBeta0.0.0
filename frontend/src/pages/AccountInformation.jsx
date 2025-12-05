@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import Cropper from 'react-easy-crop';
 import Navbar from '../components/Navbar';
+import { supabase } from '../utils/supabase';
 import '../styles/AccountInformation.css';
-import profilePlaceholder from '../assets/placeholder.png';
 
 const AccountInformation = () => {
   const [profileName, setProfileName] = useState(''); 
   const [activeTab, setActiveTab] = useState('accountInformation');
+  const [profileImage, setProfileImage] = useState(null);
 
   const navigate = useNavigate();
   const [accountData, setAccountData] = useState({
@@ -16,11 +18,20 @@ const AccountInformation = () => {
     email: '',
     phone: '', // Maps to phoneNumber on backend
     address: '', // Maps to shippingAddress on backend
+    profileImage: '',
   });
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [userRole, setUserRole] = useState('BUYER');
   const [loading, setLoading] = useState(false);
+  
+  // Cropper states
+  const [showCropper, setShowCropper] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchAccountInfo();
@@ -35,8 +46,12 @@ const AccountInformation = () => {
       setAccountData({
         ...response.data,
         phone: response.data.phoneNumber || '',
-        address: response.data.shippingAddress || ''
+        address: response.data.shippingAddress || '',
+        profileImage: response.data.profileImage || '',
       });
+      if (response.data.profileImage) {
+        setProfileImage(response.data.profileImage);
+      }
       // Get user role from localStorage
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       setUserRole(storedUser.role || 'BUYER');
@@ -60,6 +75,103 @@ const AccountInformation = () => {
     setConfirmNewPassword(e.target.value);
   };
 
+  // Helper function to create cropped image
+  const createImage = (url) =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', (error) => reject(error));
+      image.setAttribute('crossOrigin', 'anonymous');
+      image.src = url;
+    });
+
+  const getCroppedImg = async (imageSrc, pixelCrop) => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/jpeg', 0.9);
+    });
+  };
+
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result);
+        setShowCropper(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropConfirm = async () => {
+    try {
+      setUploading(true);
+      const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      
+      // Generate unique filename
+      const fileName = `profile_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('Profile Image')
+        .upload(fileName, croppedBlob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+
+      if (error) {
+        console.error('Supabase upload error:', error);
+        throw error;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('Profile Image')
+        .getPublicUrl(fileName);
+
+      setProfileImage(urlData.publicUrl);
+      setAccountData(prev => ({ ...prev, profileImage: urlData.publicUrl }));
+      setShowCropper(false);
+      setImageToCrop(null);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setImageToCrop(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -74,6 +186,7 @@ const AccountInformation = () => {
         email: accountData.email,
         phoneNumber: accountData.phone, // Map frontend 'phone' to backend 'phoneNumber'
         shippingAddress: accountData.address, // Map frontend 'address' to backend 'shippingAddress'
+        profileImage: accountData.profileImage, // Include profile image
       };
 
       await axios.put('http://localhost:8080/api/user/account', updatePayload, config);
@@ -174,6 +287,32 @@ const AccountInformation = () => {
           <div className="account-form-content">
             <h3 style={{ color: '#800000' }}>Edit Profile Information</h3>
             <form onSubmit={handleSubmit} className="account-form">
+              {/* Profile Picture Section */}
+              <div className="form-section">
+                <h3>Profile Picture</h3>
+                <div className="profile-image-upload">
+                  <div className="profile-image-preview">
+                    {profileImage ? (
+                      <img src={profileImage} alt="Profile" />
+                    ) : (
+                      <div className="profile-placeholder">
+                        <span>{accountData.username?.charAt(0)?.toUpperCase() || '?'}</span>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    id="profileImageUpload"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="profileImageUpload" className="upload-image-btn">
+                    {profileImage ? 'Change Photo' : 'Upload Photo'}
+                  </label>
+                </div>
+              </div>
+
               <div className="form-section">
                 <h3>Personal Information</h3>
                 <div className="form-group">
@@ -303,10 +442,67 @@ const AccountInformation = () => {
     <div className="account-information-page">
       <Navbar />
       
+      {/* Image Cropper Modal */}
+      {showCropper && (
+        <div className="crop-modal-overlay">
+          <div className="crop-modal">
+            <h3>Crop Your Profile Picture</h3>
+            <div className="crop-container">
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+            <div className="zoom-control">
+              <label>Zoom:</label>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+              />
+            </div>
+            <div className="crop-actions">
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={handleCropCancel}
+                disabled={uploading}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                onClick={handleCropConfirm}
+                disabled={uploading}
+              >
+                {uploading ? 'Uploading...' : 'Confirm & Upload'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="profile-header">
         <div className="profile-banner">
           <div className="profile-picture-container">
-            <img src={profilePlaceholder} alt="Profile" className="profile-picture" />
+            {profileImage ? (
+              <img src={profileImage} alt="Profile" className="profile-picture" />
+            ) : (
+              <div className="profile-picture-placeholder">
+                <span>{accountData.username?.charAt(0)?.toUpperCase() || '?'}</span>
+              </div>
+            )}
           </div>
           <div className="profile-info">
             <h1 className="profile-name">{accountData.fullName || accountData.username}</h1>

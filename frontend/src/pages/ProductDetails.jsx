@@ -158,6 +158,7 @@ const ProductDetails = () => {
   const stockQuantity = product?.quantityAvailable || 0;
   const sellerName = product?.seller?.fullName || product?.seller?.username || product?.sellerName || 'Unknown Seller';
   const sellerRating = product?.seller?.rating || 0;
+  const sellerProfileImage = product?.seller?.profileImage || null;
   const productRating = product?.averageRating || 0;
   const reviewCount = product?.reviewCount || 0;
   const viewCount = product?.viewCount || 0;
@@ -365,7 +366,11 @@ const ProductDetails = () => {
             <h3>Seller Information</h3>
             <div className="seller-card">
               <div className="seller-avatar">
-                {sellerName.charAt(0).toUpperCase()}
+                {sellerProfileImage ? (
+                  <img src={sellerProfileImage} alt={sellerName} className="seller-profile-img" />
+                ) : (
+                  sellerName.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="seller-details">
                 <h4>{sellerName}</h4>
