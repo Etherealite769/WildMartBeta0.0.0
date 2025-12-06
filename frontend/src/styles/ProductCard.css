@@ -66,6 +66,12 @@
   box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
 }
 
+.badge-out-of-stock {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
 /* Floating Like Button */
 .like-btn-floating {
   position: absolute;

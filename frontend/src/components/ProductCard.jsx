@@ -23,6 +23,7 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
   
   // Check if product is new (less than 7 days old)
   const isNew = createdAt && (Date.now() - createdAt.getTime()) < 7 * 24 * 60 * 60 * 1000;
+  const isOutOfStock = stockQuantity === 0;
   const isLowStock = stockQuantity > 0 && stockQuantity <= 5;
 
   // Check if product is already liked when component mounts
@@ -162,6 +163,7 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
       {/* Badges */}
       <div className="product-badges">
         {isNew && <span className="badge badge-new">NEW</span>}
+        {isOutOfStock && <span className="badge badge-out-of-stock">OUT OF STOCK</span>}
         {isLowStock && <span className="badge badge-low-stock">Only {stockQuantity} left</span>}
       </div>
 

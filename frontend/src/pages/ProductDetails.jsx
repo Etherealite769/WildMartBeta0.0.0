@@ -18,6 +18,7 @@ const ProductDetails = () => {
   const [addingToCart, setAddingToCart] = useState(false);
   const [localLikeCount, setLocalLikeCount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState({
     title: '',
     message: '',
@@ -48,20 +49,25 @@ const ProductDetails = () => {
   const checkIfLiked = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (token) {
-        const response = await axios.get('http://localhost:8080/api/user/likes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const likedProducts = Array.isArray(response.data) ? response.data : Array.from(response.data);
-        const currentProductId = parseInt(id);
-        const isProductLiked = likedProducts.some(p => {
-          const likedProductId = p.productId || p.id;
-          return parseInt(likedProductId) === currentProductId;
-        });
-        setIsLiked(isProductLiked);
+      if (!token) {
+        // If no token, user is not logged in, so not liked
+        setIsLiked(false);
+        return;
       }
+      
+      const response = await axios.get('http://localhost:8080/api/user/likes', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const likedProducts = Array.isArray(response.data) ? response.data : Array.from(response.data);
+      const currentProductId = parseInt(id);
+      const isProductLiked = likedProducts.some(p => {
+        const likedProductId = p.productId || p.id;
+        return parseInt(likedProductId) === currentProductId;
+      });
+      setIsLiked(isProductLiked);
     } catch (error) {
       console.error('Error checking like status:', error);
+      setIsLiked(false);
     }
   };
 
@@ -78,7 +84,26 @@ const ProductDetails = () => {
     }
   };
 
+  const handleAddToCartClick = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to add items to cart');
+      return;
+    }
+    
+    if (stockQuantity === 0) {
+      toast.error('This product is out of stock');
+      return;
+    }
+    
+    // Show confirmation modal
+    setShowAddToCartModal(true);
+  };
+
   const handleAddToCart = async () => {
+    // Close modal first
+    setShowAddToCartModal(false);
+    
     setAddingToCart(true);
     try {
       await axios.post('http://localhost:8080/api/cart/add', 
@@ -364,7 +389,7 @@ const ProductDetails = () => {
           <div className="product-actions">
             <button 
               className="btn-add-cart"
-              onClick={handleAddToCart}
+              onClick={handleAddToCartClick}
               disabled={stockQuantity === 0 || addingToCart}
             >
               {addingToCart ? (
@@ -448,6 +473,18 @@ const ProductDetails = () => {
         onConfirm={confirmModalData.onConfirm}
         onCancel={() => setShowConfirmModal(false)}
         type={confirmModalData.type}
+      />
+      
+      {/* Add to Cart Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showAddToCartModal}
+        title="Add to Cart"
+        message="Are you sure you want to add this product to cart?"
+        onConfirm={handleAddToCart}
+        onCancel={() => setShowAddToCartModal(false)}
+        confirmText="Add to Cart"
+        cancelText="Cancel"
+        type="default"
       />
     </div>
   );
