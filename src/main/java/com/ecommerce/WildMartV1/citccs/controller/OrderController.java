@@ -1,6 +1,9 @@
 package com.ecommerce.WildMartV1.citccs.controller;
 
 import com.ecommerce.WildMartV1.citccs.config.JwtService;
+import com.ecommerce.WildMartV1.citccs.dto.OrderDTO;
+import com.ecommerce.WildMartV1.citccs.dto.OrderItemDTO;
+import com.ecommerce.WildMartV1.citccs.dto.ProductDTO;
 import com.ecommerce.WildMartV1.citccs.model.Cart;
 import com.ecommerce.WildMartV1.citccs.model.CartItem;
 import com.ecommerce.WildMartV1.citccs.model.Order;
@@ -18,11 +21,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,15 +66,10 @@ public class OrderController {
                         .body(Map.of("error", "Unauthorized access to this order"));
             }
             
-            // Force load lazy relationships
-            order.getItems().size();
-            order.getItems().forEach(item -> {
-                if (item.getProduct() != null) {
-                    item.getProduct().getProductName();
-                }
-            });
+            // Convert to DTO to avoid serialization issues
+            OrderDTO orderDTO = convertToDTO(order);
             
-            return ResponseEntity.ok(order);
+            return ResponseEntity.ok(orderDTO);
         } catch (Exception e) {
             log.error("Error fetching order details", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -78,22 +78,34 @@ public class OrderController {
     }
 
     @GetMapping("/user/orders")
-    public ResponseEntity<List<Order>> getUserOrders(@RequestHeader("Authorization") String token) {
-        Integer userId = extractUserIdFromToken(token);
-        User user = userService.getUserById(userId);
-        List<Order> orders = orderRepository.findByBuyerOrderByOrderDateDesc(user);
-        
-        // Force load lazy relationships to avoid serialization issues
-        orders.forEach(order -> {
-            order.getItems().size(); // Initialize items collection
-            order.getItems().forEach(item -> {
-                if (item.getProduct() != null) {
-                    item.getProduct().getProductName(); // Initialize product
-                }
-            });
-        });
-        
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<?> getUserOrders(Authentication authentication) {
+        try {
+            log.info("Received request for user orders");
+            
+            if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
+                log.warn("Authentication is null or principal is not a User");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "User not authenticated"));
+            }
+            
+            User user = (User) authentication.getPrincipal();
+            log.info("Successfully fetched user: {} (ID: {})", user.getEmail(), user.getUserId());
+            
+            List<Order> orders = orderRepository.findByBuyerOrderByOrderDateDesc(user);
+            log.info("Found {} orders for user", orders.size());
+            
+            // Convert to DTOs to avoid serialization issues
+            List<OrderDTO> orderDTOs = new ArrayList<>();
+            for (Order order : orders) {
+                orderDTOs.add(convertToDTO(order));
+            }
+            
+            return ResponseEntity.ok(orderDTOs);
+        } catch (Exception e) {
+            log.error("Error fetching user orders: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch orders: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/orders/checkout")
@@ -285,16 +297,88 @@ public class OrderController {
 
     private Integer extractUserIdFromToken(String token) {
         try {
+            log.info("Extracting userId from token. Original token: {}", 
+                token != null && token.length() > 7 ? token.substring(0, 7) + "***" : "null or empty");
+                
             if (token != null && token.startsWith("Bearer ")) {
                 token = token.substring(7);
+                log.info("Removed Bearer prefix. New token: {}", 
+                    token != null && token.length() > 7 ? token.substring(0, 7) + "***" : "null or empty");
             }
+            
+            // Add extra validation for empty or null token
+            if (token == null || token.isEmpty()) {
+                log.warn("Token is missing or empty");
+                throw new RuntimeException("Token is missing or empty");
+            }
+            
+            log.info("Attempting to extract username from token");
             String email = jwtService.extractUsername(token);
+            log.info("Extracted email: {}", email);
+            
+            // Add validation for extracted email
+            if (email == null || email.isEmpty()) {
+                log.warn("Invalid token: email not found");
+                throw new RuntimeException("Invalid token: email not found");
+            }
+            
+            log.info("Looking up user by email: {}", email);
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                    .orElseThrow(() -> {
+                        log.warn("User not found for email: {}", email);
+                        return new RuntimeException("User not found with email: " + email);
+                    });
+            log.info("Found user with ID: {}", user.getUserId());
             return user.getUserId();
         } catch (Exception e) {
-            log.error("Error extracting userId from token", e);
+            log.error("Error extracting userId from token: {}", e.getMessage(), e);
             throw new RuntimeException("Invalid token: " + e.getMessage(), e);
         }
+    }
+    
+    private OrderDTO convertToDTO(Order order) {
+        OrderDTO dto = new OrderDTO();
+        dto.setOrderId(order.getOrderId());
+        dto.setOrderNumber(order.getOrderNumber());
+        dto.setTotalAmount(order.getTotalAmount());
+        dto.setOrderStatus(order.getOrderStatus());
+        dto.setPaymentStatus(order.getPaymentStatus());
+        dto.setShippingAddress(order.getShippingAddress());
+        dto.setOrderDate(order.getOrderDate());
+        dto.setUpdatedAt(order.getUpdatedAt());
+        
+        // Convert order items
+        List<OrderItemDTO> itemDTOs = new ArrayList<>();
+        for (OrderItem item : order.getItems()) {
+            OrderItemDTO itemDTO = new OrderItemDTO();
+            itemDTO.setId(item.getId());
+            itemDTO.setQuantity(item.getQuantity());
+            itemDTO.setUnitPrice(item.getUnitPrice());
+            itemDTO.setSubtotal(item.getSubtotal());
+            
+            // Convert product to DTO
+            if (item.getProduct() != null) {
+                Product product = item.getProduct();
+                ProductDTO productDTO = new ProductDTO();
+                productDTO.setProductId(product.getProductId());
+                productDTO.setProductName(product.getProductName());
+                productDTO.setDescription(product.getDescription());
+                productDTO.setPrice(product.getPrice());
+                productDTO.setQuantityAvailable(product.getQuantityAvailable());
+                productDTO.setImageUrl(product.getImageUrl());
+                productDTO.setStatus(product.getStatus());
+                productDTO.setViewCount(product.getViewCount());
+                productDTO.setLikeCount(product.getLikeCount());
+                productDTO.setAverageRating(product.getAverageRating());
+                productDTO.setCreatedAt(product.getCreatedAt());
+                productDTO.setUpdatedAt(product.getUpdatedAt());
+                itemDTO.setProduct(productDTO);
+            }
+            
+            itemDTOs.add(itemDTO);
+        }
+        dto.setItems(itemDTOs);
+        
+        return dto;
     }
 }

@@ -1,12 +1,14 @@
 package com.ecommerce.WildMartV1.citccs.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "order_items")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class OrderItem {
 
     @Id
@@ -19,9 +21,9 @@ public class OrderItem {
     @JsonBackReference
     private Order order;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "product_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "seller", "category", "reviews", "likedByUsers"})
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "seller", "category", "reviews", "likedByUsers", "orderItems", "cartItems"})
     private Product product;
 
     @Column(nullable = false)
@@ -44,6 +46,7 @@ public class OrderItem {
         this.subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 
+    // Getters and setters
     public Long getId() {
         return id;
     }
@@ -52,6 +55,7 @@ public class OrderItem {
         this.id = id;
     }
 
+    @JsonIgnore
     public Order getOrder() {
         return order;
     }
