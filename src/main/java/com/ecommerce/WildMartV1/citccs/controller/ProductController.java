@@ -47,7 +47,8 @@ public class ProductController {
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getAllProducts() {
-        List<Product> products = productRepository.findAll();
+        // Use optimized query to fetch products with seller and category in one query
+        List<Product> products = productRepository.findAllWithSellerAndCategory();
         List<Map<String, Object>> productList = products.stream().map(product -> {
             Map<String, Object> productMap = new HashMap<>();
             productMap.put("id", product.getProductId());
@@ -69,7 +70,9 @@ public class ProductController {
             }
             // Add seller info
             if (product.getSeller() != null) {
-                productMap.put("sellerName", product.getSeller().getFullName() != null ? product.getSeller().getFullName() : product.getSeller().getUsername());
+                productMap.put("sellerName",
+                        product.getSeller().getFullName() != null ? product.getSeller().getFullName()
+                                : product.getSeller().getUsername());
                 productMap.put("sellerEmail", product.getSeller().getEmail());
             }
             return productMap;
@@ -82,7 +85,7 @@ public class ProductController {
     public ResponseEntity<Map<String, Object>> getProductById(@PathVariable Integer id) {
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-        
+
         Map<String, Object> productMap = new HashMap<>();
         productMap.put("productId", product.getProductId());
         productMap.put("productName", product.getProductName());
@@ -96,13 +99,13 @@ public class ProductController {
         productMap.put("averageRating", product.getAverageRating());
         productMap.put("createdAt", product.getCreatedAt());
         productMap.put("updatedAt", product.getUpdatedAt());
-        
+
         // Add category info
         if (product.getCategory() != null) {
             productMap.put("categoryName", product.getCategory().getCategoryName());
             productMap.put("categoryId", product.getCategory().getId());
         }
-        
+
         // Add seller info - important for ownership verification
         if (product.getSeller() != null) {
             Map<String, Object> sellerMap = new HashMap<>();
@@ -113,13 +116,14 @@ public class ProductController {
             sellerMap.put("profileImage", product.getSeller().getProfileImage());
             sellerMap.put("rating", 0); // Default rating
             productMap.put("seller", sellerMap);
-            
+
             // Keep legacy fields for backward compatibility
             productMap.put("sellerId", product.getSeller().getUserId());
-            productMap.put("sellerName", product.getSeller().getFullName() != null ? product.getSeller().getFullName() : product.getSeller().getUsername());
+            productMap.put("sellerName", product.getSeller().getFullName() != null ? product.getSeller().getFullName()
+                    : product.getSeller().getUsername());
             productMap.put("sellerEmail", product.getSeller().getEmail());
         }
-        
+
         return ResponseEntity.ok(productMap);
     }
 
@@ -159,11 +163,11 @@ public class ProductController {
             @PathVariable Integer id,
             @RequestBody ProductDTO productDTO) {
         log.info("Updating product with id: {}", id);
-        
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String authName = authentication != null ? authentication.getName() : null;
         log.info("Authentication name: {}", authName);
-        
+
         // Check if user is properly authenticated (not anonymous)
         if (authentication == null || authName == null || "anonymousUser".equals(authName)) {
             log.warn("Unauthorized access attempt for product update: {}", id);
@@ -174,7 +178,7 @@ public class ProductController {
 
         User currentUser = userRepository.findByEmail(userEmail)
                 .orElse(null);
-        
+
         if (currentUser == null) {
             log.warn("User not found with email: {}", userEmail);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -184,20 +188,20 @@ public class ProductController {
 
         Product product = productRepository.findByIdWithSeller(id)
                 .orElse(null);
-        
+
         if (product == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Product not found", "message", "Product with id " + id + " not found"));
         }
-        
+
         Integer sellerId = product.getSeller() != null ? product.getSeller().getUserId() : null;
         log.info("Product seller ID: {}, Current user ID: {}", sellerId, currentUser.getUserId());
 
         if (sellerId == null || !sellerId.equals(currentUser.getUserId())) {
-            log.warn("User {} (ID: {}) attempted to update product {} owned by seller ID: {}", 
+            log.warn("User {} (ID: {}) attempted to update product {} owned by seller ID: {}",
                     userEmail, currentUser.getUserId(), id, sellerId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Permission denied", 
+                    .body(Map.of("error", "Permission denied",
                             "message", "You can only update your own products",
                             "yourUserId", currentUser.getUserId(),
                             "productSellerId", sellerId != null ? sellerId : "null"));
@@ -232,7 +236,7 @@ public class ProductController {
         log.info("Product {} updated successfully", id);
         return ResponseEntity.ok(updated);
     }
-    
+
     @PutMapping("/{id}/multipart")
     @Transactional
     public ResponseEntity<?> updateProductMultipart(
@@ -244,35 +248,35 @@ public class ProductController {
             @RequestParam("quantityAvailable") Integer quantityAvailable,
             @RequestParam("status") String status,
             @RequestParam(value = "image", required = false) org.springframework.web.multipart.MultipartFile image) {
-        
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         String userEmail = authentication.getName();
-        
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
-        
+
         if (!product.getSeller().getUserId().equals(user.getUserId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         // Update product fields
         product.setProductName(productName);
         product.setDescription(description);
         product.setPrice(java.math.BigDecimal.valueOf(price));
         product.setQuantityAvailable(quantityAvailable);
         product.setStatus(status);
-        
+
         // Handle category
         Category categoryPayload = new Category();
         categoryPayload.setCategoryName(categoryName);
         product.setCategory(resolveCategory(categoryPayload));
-        
+
         // Handle image upload if provided
         if (image != null && !image.isEmpty()) {
             try {
@@ -285,7 +289,7 @@ public class ProductController {
                 return ResponseEntity.badRequest().body("Failed to process image: " + e.getMessage());
             }
         }
-        
+
         Product updated = productRepository.save(product);
         return ResponseEntity.ok(updated);
     }

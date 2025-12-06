@@ -16,6 +16,7 @@ const ProductDetails = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [localLikeCount, setLocalLikeCount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState({
     title: '',
@@ -52,9 +53,11 @@ const ProductDetails = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         const likedProducts = Array.isArray(response.data) ? response.data : Array.from(response.data);
-        const isProductLiked = likedProducts.some(p => 
-          (p.productId || p.id) === parseInt(id)
-        );
+        const currentProductId = parseInt(id);
+        const isProductLiked = likedProducts.some(p => {
+          const likedProductId = p.productId || p.id;
+          return parseInt(likedProductId) === currentProductId;
+        });
         setIsLiked(isProductLiked);
       }
     } catch (error) {
@@ -69,6 +72,7 @@ const ProductDetails = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProduct(response.data);
+      setLocalLikeCount(response.data.likeCount || 0);
     } catch (error) {
       console.error('Error fetching product:', error);
     }
@@ -96,19 +100,35 @@ const ProductDetails = () => {
       const productId = product?.productId || id;
       
       if (isLiked) {
+        // Optimistically update UI
+        setIsLiked(false);
+        setLocalLikeCount(prev => Math.max(0, prev - 1));
+        
         await axios.delete(`http://localhost:8080/api/user/likes/${productId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setIsLiked(false);
+        toast.success('Removed from wishlist');
       } else {
+        // Optimistically update UI
+        setIsLiked(true);
+        setLocalLikeCount(prev => prev + 1);
+        
         await axios.post(`http://localhost:8080/api/user/likes/${productId}`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setIsLiked(true);
+        toast.success('Added to wishlist');
       }
+      
+      // Optionally refresh product data to get accurate count
+      setTimeout(() => {
+        fetchProduct();
+      }, 500);
     } catch (error) {
       console.error('Error toggling like:', error);
       toast.error('Failed to update like status. Please try again.');
+      // Revert optimistic updates on error
+      setIsLiked(!isLiked);
+      setLocalLikeCount(product?.likeCount || 0);
     }
   };
 
@@ -162,7 +182,6 @@ const ProductDetails = () => {
   const productRating = product?.averageRating || 0;
   const reviewCount = product?.reviewCount || 0;
   const viewCount = product?.viewCount || 0;
-  const likeCount = product?.likeCount || 0;
 
   if (!product) {
     return (
@@ -179,8 +198,19 @@ const ProductDetails = () => {
   return (
     <div className="product-details-page">
       <Navbar />
-
-      <div className="product-details-container">
+      
+      {/* Modal Overlay */}
+      <div className="modal-overlay" onClick={() => navigate('/dashboard')}>
+        {/* Close Button */}
+        <button className="modal-close-btn" onClick={() => navigate('/dashboard')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        
+        {/* Modal Content */}
+        <div className="product-details-modal" onClick={(e) => e.stopPropagation()}>
         {/* Left Column - Image */}
         <div className="product-images-section">
           <div className="product-images">
@@ -221,7 +251,7 @@ const ProductDetails = () => {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
-              <span>{likeCount} likes</span>
+              <span>{localLikeCount} {localLikeCount === 1 ? 'like' : 'likes'}</span>
             </div>
           </div>
         </div>
@@ -353,7 +383,6 @@ const ProductDetails = () => {
             <button 
               className={`btn-like ${isLiked ? 'liked' : ''}`}
               onClick={handleLike}
-              title={isLiked ? 'Remove from wishlist' : 'Add to wishlist'}
             >
               <svg viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -409,7 +438,9 @@ const ProductDetails = () => {
             )}
           </div>
         </div>
+        </div>
       </div>
+      
       <ConfirmModal
         isOpen={showConfirmModal}
         title={confirmModalData.title}

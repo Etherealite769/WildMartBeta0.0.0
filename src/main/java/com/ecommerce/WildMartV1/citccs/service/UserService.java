@@ -21,24 +21,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
-    
+
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final LikeRepository likeRepository;
-    
+
     public User getUserById(Integer userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
-    
+
     public UserDTO getUserProfile(Integer userId) {
         User user = getUserById(userId);
         return convertToDTO(user);
     }
-    
+
     public UserDTO updateUserProfile(Integer userId, UserDTO userDTO) {
         User user = getUserById(userId);
-        
+
         if (userDTO.getUsername() != null) {
             user.setUsername(userDTO.getUsername());
         }
@@ -71,11 +71,11 @@ public class UserService {
         if (userDTO.getVerified() != null) {
             user.setVerified(userDTO.getVerified());
         }
-        
+
         user = userRepository.save(user);
         return convertToDTO(user);
     }
-    
+
     public List<Product> getUserProducts(Integer userId) {
         log.info("Attempting to retrieve products for userId: {}", userId);
         User user = getUserById(userId);
@@ -83,14 +83,14 @@ public class UserService {
         log.info("Found {} products for user: {}", products.size(), userId);
         return products;
     }
-    
+
     public Set<Product> getLikedProducts(Integer userId) {
         User user = getUserById(userId);
         return user.getLikes().stream()
                 .map(Like::getProduct)
                 .collect(Collectors.toCollection(HashSet::new));
     }
-    
+
     @Transactional
     public void likeProduct(Integer userId, Integer productId) {
         User user = getUserById(userId);
@@ -101,6 +101,11 @@ public class UserService {
         if (!likeRepository.existsByUserAndProduct(user, product)) {
             Like like = new Like(user, product);
             likeRepository.save(like);
+
+            // Update like count
+            product.setLikeCount(product.getLikeCount() + 1);
+            productRepository.save(product);
+
             log.info("User {} liked product {}", userId, productId);
         } else {
             log.info("User {} already liked product {}", userId, productId);
@@ -113,9 +118,19 @@ public class UserService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Delete the like using repository
-        likeRepository.deleteByUserAndProduct(user, product);
-        log.info("User {} unliked product {}", userId, productId);
+        // Check if the like exists before attempting to delete
+        if (likeRepository.existsByUserAndProduct(user, product)) {
+            // Delete the like using repository
+            likeRepository.deleteByUserAndProduct(user, product);
+
+            // Update like count (ensure it doesn't go below 0)
+            product.setLikeCount(Math.max(0, product.getLikeCount() - 1));
+            productRepository.save(product);
+
+            log.info("User {} unliked product {}", userId, productId);
+        } else {
+            log.info("User {} has not liked product {}, no action taken", userId, productId);
+        }
     }
 
     private UserDTO convertToDTO(User user) {

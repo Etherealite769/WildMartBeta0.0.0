@@ -14,10 +14,16 @@ import java.util.Optional;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Integer> {
     List<Product> findBySeller(User seller);
+
     List<Product> findByCategory(Category category);
+
     List<Product> findByProductNameContainingIgnoreCase(String name);
+
     List<Product> findByStatus(String status);
-    
+
     @Query("SELECT p FROM Product p JOIN FETCH p.seller WHERE p.productId = :id")
     Optional<Product> findByIdWithSeller(@Param("id") Integer id);
+
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.seller LEFT JOIN FETCH p.category")
+    List<Product> findAllWithSellerAndCategory();
 }

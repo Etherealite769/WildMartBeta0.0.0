@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import ConfirmModal from './ConfirmModal';
 import '../styles/ProductCard.css';
 
 const ProductCard = ({ product, onClick, showSeller = true, showEditButton = false, onUnlike, initialLiked = false }) => {
@@ -9,6 +10,7 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
   const [isLiked, setIsLiked] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
   // Handle both field name formats from backend (old Product format and new ProductDTO format)
   const productName = product.productName || product.name || 'Untitled Product';
@@ -111,23 +113,36 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
     navigate(`/edit-product/${product.productId || product.id}`);
   };
 
-  const handleAddToCart = async (e) => {
+  const handleAddToCartClick = (e) => {
     e.stopPropagation();
     
-    // Get product ID (handle both field name formats)
-    const productId = product.productId || product.id;
+    // Check if user is logged in first
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to add items to cart');
+      return;
+    }
     
+    // Check if product ID exists
+    const productId = product.productId || product.id;
     if (!productId) {
       toast.error('Product ID not found');
       return;
     }
     
+    // Show confirmation modal
+    setShowAddToCartModal(true);
+  };
+
+  const handleAddToCart = async () => {
+    // Close modal first
+    setShowAddToCartModal(false);
+    
+    // Get product ID (handle both field name formats)
+    const productId = product.productId || product.id;
+    
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Please login to add items to cart');
-        return;
-      }
       
       // Add to cart API call
       await axios.post('http://localhost:8080/api/cart/add', 
@@ -234,7 +249,7 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
           ) : (
             <button 
               className="add-to-cart-btn"
-              onClick={handleAddToCart}
+              onClick={handleAddToCartClick}
               aria-label="Add to cart"
               disabled={stockQuantity === 0}
             >
@@ -247,6 +262,18 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
           )}
         </div>
       </div>
+      
+      {/* Add to Cart Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showAddToCartModal}
+        title="Add to Cart"
+        message={`Are you sure you want to add "${productName}" to your cart?`}
+        onConfirm={handleAddToCart}
+        onCancel={() => setShowAddToCartModal(false)}
+        confirmText="Add to Cart"
+        cancelText="Cancel"
+        type="default"
+      />
     </div>
   );
 };
