@@ -14,7 +14,9 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [localLikeCount, setLocalLikeCount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState({
     title: '',
     message: '',
@@ -24,11 +26,21 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen && productId) {
-      fetchProduct();
-      fetchCurrentUser();
-      checkIfLiked();
+      // Reset only the data-related states when opening modal
+      setLocalLikeCount(0);
       setImageLoaded(false);
       setQuantity(1);
+      
+      // Fetch data immediately - these will update the states asynchronously
+      const loadData = async () => {
+        // Check like status first for immediate visual feedback
+        await checkIfLiked();
+        // Then fetch other data
+        fetchProduct();
+        fetchCurrentUser();
+      };
+      
+      loadData();
     }
   }, [productId, isOpen]);
 
@@ -61,18 +73,35 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
   const checkIfLiked = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (token) {
-        const response = await axios.get('http://localhost:8080/api/user/likes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const likedProducts = Array.isArray(response.data) ? response.data : Array.from(response.data);
-        const isProductLiked = likedProducts.some(p => 
-          (p.productId || p.id) === parseInt(productId)
-        );
-        setIsLiked(isProductLiked);
+      console.log('[ProductDetailsModal] Checking like status for product:', productId);
+      console.log('[ProductDetailsModal] Token exists:', !!token);
+      
+      if (!token) {
+        // If no token, user is not logged in, so not liked
+        console.log('[ProductDetailsModal] No token found, setting isLiked to false');
+        setIsLiked(false);
+        return;
       }
+      
+      const response = await axios.get('http://localhost:8080/api/user/likes', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const likedProducts = Array.isArray(response.data) ? response.data : Array.from(response.data);
+      const currentProductId = parseInt(productId);
+      const isProductLiked = likedProducts.some(p => {
+        const likedId = p.productId || p.id;
+        return parseInt(likedId) === currentProductId;
+      });
+      console.log('[ProductDetailsModal] Like check result:', {
+        productId: currentProductId,
+        likedProductIds: likedProducts.map(p => p.productId || p.id),
+        isLiked: isProductLiked,
+        totalLikedProducts: likedProducts.length
+      });
+      setIsLiked(isProductLiked);
     } catch (error) {
-      console.error('Error checking like status:', error);
+      console.error('[ProductDetailsModal] Error checking like status:', error);
+      setIsLiked(false);
     }
   };
 
@@ -83,12 +112,32 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProduct(response.data);
+      setLocalLikeCount(response.data.likeCount || 0);
     } catch (error) {
       console.error('Error fetching product:', error);
     }
   };
 
+  const handleAddToCartClick = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to add items to cart');
+      return;
+    }
+    
+    if (stockQuantity === 0) {
+      toast.error('This product is out of stock');
+      return;
+    }
+    
+    // Show confirmation modal
+    setShowAddToCartModal(true);
+  };
+
   const handleAddToCart = async () => {
+    // Close modal first
+    setShowAddToCartModal(false);
+    
     setAddingToCart(true);
     try {
       await axios.post('http://localhost:8080/api/cart/add', 
@@ -107,22 +156,41 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
   const handleLike = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to like products');
+        return;
+      }
+      
       const prodId = product?.productId || productId;
       
       if (isLiked) {
+        // Optimistically update UI
+        setIsLiked(false);
+        setLocalLikeCount(prev => Math.max(0, prev - 1));
+        
         await axios.delete(`http://localhost:8080/api/user/likes/${prodId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setIsLiked(false);
       } else {
+        // Optimistically update UI
+        setIsLiked(true);
+        setLocalLikeCount(prev => prev + 1);
+        
         await axios.post(`http://localhost:8080/api/user/likes/${prodId}`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setIsLiked(true);
       }
+      
+      // Refresh product data to get accurate count
+      setTimeout(() => {
+        fetchProduct();
+      }, 500);
     } catch (error) {
       console.error('Error toggling like:', error);
       toast.error('Failed to update like status. Please try again.');
+      // Revert optimistic updates on error
+      setIsLiked(!isLiked);
+      setLocalLikeCount(product?.likeCount || 0);
     }
   };
 
@@ -190,7 +258,6 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
   const sellerProfileImage = product?.seller?.profileImage || null;
   const productRating = product?.averageRating || 0;
   const reviewCount = product?.reviewCount || 0;
-  const likeCount = product?.likeCount || 0;
 
   return (
     <>
@@ -244,7 +311,7 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                   </svg>
-                  <span>{likeCount} likes</span>
+                  <span>{localLikeCount} {localLikeCount === 1 ? 'like' : 'likes'}</span>
                 </div>
               </div>
             </div>
@@ -357,7 +424,7 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
               <div className="product-actions">
                 <button 
                   className="btn-add-cart"
-                  onClick={handleAddToCart}
+                  onClick={handleAddToCartClick}
                   disabled={stockQuantity === 0 || addingToCart}
                 >
                   {addingToCart ? (
@@ -446,6 +513,18 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
         onConfirm={confirmModalData.onConfirm}
         onCancel={() => setShowConfirmModal(false)}
         type={confirmModalData.type}
+      />
+      
+      {/* Add to Cart Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showAddToCartModal}
+        title="Add to Cart"
+        message="Are you sure you want to add this product to cart?"
+        onConfirm={handleAddToCart}
+        onCancel={() => setShowAddToCartModal(false)}
+        confirmText="Add to Cart"
+        cancelText="Cancel"
+        type="default"
       />
     </>
   );

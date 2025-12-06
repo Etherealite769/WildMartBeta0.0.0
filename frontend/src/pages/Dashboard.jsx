@@ -18,6 +18,7 @@ const Dashboard = () => {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     // Fetch user and products in parallel for faster loading
@@ -113,6 +114,8 @@ const Dashboard = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedProductId(null);
+    // Trigger refresh of product cards to update like status
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
@@ -165,7 +168,7 @@ const Dashboard = () => {
           ) : filteredProducts.length > 0 ? (
             filteredProducts.map(product => (
               <ProductCard 
-                key={product.id} 
+                key={`${product.id}-${refreshTrigger}`}
                 product={product}
                 onClick={() => handleProductClick(product.id)}
               />
