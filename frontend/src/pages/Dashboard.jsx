@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
+import ProductDetailsModal from '../components/ProductDetailsModal';
 import '../styles/Dashboard.css';
 
 const Dashboard = () => {
@@ -14,10 +15,42 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [activeFilter, setActiveFilter] = useState('Popular');
   const [currentUser, setCurrentUser] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchCurrentUser();
-    fetchProducts();
+    // Fetch user and products in parallel for faster loading
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        
+        // Fetch both in parallel
+        const [productsResponse, userResponse] = await Promise.all([
+          axios.get('http://localhost:8080/api/products', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          token ? axios.get('http://localhost:8080/api/user/profile', {
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(err => {
+            console.error('Error fetching user:', err);
+            return null;
+          }) : Promise.resolve(null)
+        ]);
+        
+        setProducts(productsResponse.data);
+        if (userResponse?.data) {
+          setCurrentUser(userResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -25,35 +58,7 @@ const Dashboard = () => {
     applyAllFilters();
   }, [products, currentUser, searchTerm, selectedCategory]);
 
-  const fetchCurrentUser = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        const response = await axios.get('http://localhost:8080/api/user/profile', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setCurrentUser(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching current user:', error);
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Fetching products with token:', token ? 'present' : 'missing');
-      
-      const response = await axios.get('http://localhost:8080/api/products', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      console.log('Products fetched:', response.data);
-      setProducts(response.data);
-    } catch (error) {
-      console.error('Error fetching products:', error.response?.data || error.message);
-    }
-  };
+  // Remove individual fetch functions - now using combined fetchData
 
   const applyAllFilters = () => {
     // Filter out sold products and products belonging to the current user
@@ -100,6 +105,16 @@ const Dashboard = () => {
     setSelectedCategory(category);
   };
 
+  const handleProductClick = (productId) => {
+    setSelectedProductId(productId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProductId(null);
+  };
+
   return (
     <div className="dashboard">
       <Navbar />
@@ -142,15 +157,32 @@ const Dashboard = () => {
         </div>
 
         <div className="products-grid">
-          {filteredProducts.map(product => (
-            <ProductCard 
-              key={product.id} 
-              product={product}
-              onClick={() => navigate(`/product/${product.id}`)}
-            />
-          ))}
+          {isLoading ? (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <p>Loading products...</p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            filteredProducts.map(product => (
+              <ProductCard 
+                key={product.id} 
+                product={product}
+                onClick={() => handleProductClick(product.id)}
+              />
+            ))
+          ) : (
+            <div className="no-products">
+              <p>No products found</p>
+            </div>
+          )}
         </div>
       </div>
+      
+      <ProductDetailsModal 
+        productId={selectedProductId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };

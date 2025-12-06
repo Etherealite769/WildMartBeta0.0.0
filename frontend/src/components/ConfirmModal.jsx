@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import '../styles/ConfirmModal.css';
 
 const ConfirmModal = ({ 
@@ -15,9 +16,9 @@ const ConfirmModal = ({
 
   const modalTypeClass = `confirm-modal-${type}`;
 
-  return (
-    <div className="confirm-modal-overlay">
-      <div className={`confirm-modal ${modalTypeClass}`}>
+  const modalContent = (
+    <div className="confirm-modal-overlay" onClick={onCancel}>
+      <div className={`confirm-modal ${modalTypeClass}`} onClick={(e) => e.stopPropagation()}>
         <div className="confirm-modal-header">
           <h3>{title}</h3>
         </div>
@@ -40,6 +41,12 @@ const ConfirmModal = ({
         </div>
       </div>
     </div>
+  );
+
+  // Use portal to render modal at document root
+  return ReactDOM.createPortal(
+    modalContent,
+    document.body
   );
 };
 
