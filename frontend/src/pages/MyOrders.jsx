@@ -9,6 +9,8 @@ const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -16,14 +18,51 @@ const MyOrders = () => {
 
   const fetchOrders = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
+      // Check if token exists
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication required. Please log in again.');
+        return;
+      }
+      
       const response = await axios.get('http://localhost:8080/api/user/orders', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
+      
+      console.log('Orders API Response:', response.data);
+      
       // Ensure we always set an array
-      setOrders(Array.isArray(response.data) ? response.data : []);
+      const ordersData = Array.isArray(response.data) ? response.data : [];
+      setOrders(ordersData);
     } catch (error) {
       console.error('Error fetching orders:', error);
+      
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with error status
+        if (error.response.status === 401 || error.response.status === 403) {
+          setError('Authentication failed. Please log in again.');
+          // Optionally redirect to login page
+          // navigate('/login');
+        } else if (error.response.status === 500) {
+          setError('Server error. Please try again later.');
+        } else {
+          setError(`Failed to load orders: ${error.response.data?.error || error.message}`);
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        setError('Network error. Please check your connection.');
+      } else {
+        // Something else happened
+        setError(`Error: ${error.message}`);
+      }
+      
       setOrders([]); // Set empty array on error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -31,6 +70,33 @@ const MyOrders = () => {
     if (filter === 'all') return true;
     return order.orderStatus?.toLowerCase() === filter.toLowerCase();
   }) : [];
+
+  if (loading) {
+    return (
+      <div className="my-orders-page">
+        <Navbar />
+        <div className="my-orders-container">
+          <div className="loading-state">
+            <p>Loading orders...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="my-orders-page">
+        <Navbar />
+        <div className="my-orders-container">
+          <div className="error-state">
+            <p>{error}</p>
+            <button onClick={fetchOrders} className="btn-refresh">Retry</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="my-orders-page">
@@ -138,6 +204,7 @@ const MyOrders = () => {
                 </svg>
               </div>
               <p>No orders yet</p>
+              <button onClick={() => navigate('/dashboard')} className="btn-primary">Start Shopping</button>
             </div>
           )}
         </div>

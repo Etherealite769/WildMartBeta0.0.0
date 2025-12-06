@@ -17,18 +17,30 @@ public class JwtService {
 
     @Value("${jwt.secret}")
     private String secret;
+    
+    // Cache the signing key to ensure consistency
+    private SecretKey cachedSigningKey = null;
 
     @Value("${jwt.expiration}")
     private Long expiration;
 
     private SecretKey getSigningKey() {
+        // Return cached key if already created
+        if (cachedSigningKey != null) {
+            return cachedSigningKey;
+        }
+        
         // Generate a secure key if the secret is too short
         if (secret == null || secret.length() < 32) {
-            // Generate a secure key
-            return Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            // Log warning about weak secret
+            System.out.println("WARNING: JWT secret is too short, generating temporary key");
+            cachedSigningKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        } else {
+            // Use the provided secret if it's long enough
+            cachedSigningKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         }
-        // Use the provided secret if it's long enough
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        
+        return cachedSigningKey;
     }
 
     public String generateToken(String username) {
@@ -47,8 +59,12 @@ public class JwtService {
     }
 
     public Boolean validateToken(String token, String username) {
-        final String tokenUsername = extractUsername(token);
-        return (tokenUsername.equals(username) && !isTokenExpired(token));
+        try {
+            final String tokenUsername = extractUsername(token);
+            return (tokenUsername.equals(username) && !isTokenExpired(token));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public String extractUsername(String token) {
