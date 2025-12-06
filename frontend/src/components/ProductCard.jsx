@@ -158,8 +158,16 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
     }
   };
 
+  const handleCardClick = () => {
+    // Prevent click if product is out of stock
+    if (isOutOfStock) {
+      return;
+    }
+    onClick();
+  };
+
   return (
-    <div className="product-card" onClick={onClick}>
+    <div className={`product-card ${isOutOfStock ? 'out-of-stock' : ''}`} onClick={handleCardClick}>
       {/* Badges */}
       <div className="product-badges">
         {isNew && <span className="badge badge-new">NEW</span>}
