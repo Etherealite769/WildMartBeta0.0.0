@@ -34,6 +34,36 @@
   color: white;
 }
 
+/* Out of Stock Faded Style */
+.product-card.out-of-stock {
+  opacity: 0.5;
+  filter: grayscale(40%);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.product-card.out-of-stock:hover {
+  opacity: 0.5;
+  transform: none;
+  box-shadow: 0 4px 15px rgba(128, 0, 0, 0.08);
+}
+
+.product-card.out-of-stock .product-image img {
+  opacity: 0.7;
+}
+
+.product-card.out-of-stock .product-name,
+.product-card.out-of-stock .product-price,
+.product-card.out-of-stock .product-category {
+  color: #999;
+}
+
+.product-card.out-of-stock .add-to-cart-btn {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* Product Badges */
 .product-badges {
   position: absolute;

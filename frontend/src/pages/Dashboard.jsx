@@ -95,7 +95,12 @@ const Dashboard = () => {
       });
     }
     
-    setFilteredProducts(filtered);
+    // Separate in-stock and out-of-stock products
+    const inStock = filtered.filter(p => p.quantityAvailable > 0);
+    const outOfStock = filtered.filter(p => p.quantityAvailable === 0);
+    
+    // Combine with in-stock first, out-of-stock at the bottom
+    setFilteredProducts([...inStock, ...outOfStock]);
   };
 
   const handleSearch = (e) => {
@@ -166,13 +171,32 @@ const Dashboard = () => {
               <p>Loading products...</p>
             </div>
           ) : filteredProducts.length > 0 ? (
-            filteredProducts.map(product => (
-              <ProductCard 
-                key={`${product.id}-${refreshTrigger}`}
-                product={product}
-                onClick={() => handleProductClick(product.id)}
-              />
-            ))
+            <>
+              {/* In-stock products */}
+              {filteredProducts.filter(p => p.quantityAvailable > 0).map(product => (
+                <ProductCard 
+                  key={`${product.id}-${refreshTrigger}`}
+                  product={product}
+                  onClick={() => handleProductClick(product.id)}
+                />
+              ))}
+              
+              {/* Out of stock section */}
+              {filteredProducts.filter(p => p.quantityAvailable === 0).length > 0 && (
+                <>
+                  <div className="out-of-stock-divider">
+                    <h3>Out of Stock</h3>
+                  </div>
+                  {filteredProducts.filter(p => p.quantityAvailable === 0).map(product => (
+                    <ProductCard 
+                      key={`${product.id}-${refreshTrigger}`}
+                      product={product}
+                      onClick={() => handleProductClick(product.id)}
+                    />
+                  ))}
+                </>
+              )}
+            </>
           ) : (
             <div className="no-products">
               <p>No products found</p>
