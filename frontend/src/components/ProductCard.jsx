@@ -21,8 +21,14 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
   const stockQuantity = product.quantityAvailable || product.stockQuantity || product.quantity || 0;
   const createdAt = product.createdAt ? new Date(product.createdAt) : null;
   
-  // Check if product is new (less than 7 days old)
-  const isNew = createdAt && (Date.now() - createdAt.getTime()) < 7 * 24 * 60 * 60 * 1000;
+  // Check if product is created today (same day check)
+  const isNew = (() => {
+    if (!createdAt) return false;
+    const today = new Date();
+    return createdAt.getDate() === today.getDate() &&
+           createdAt.getMonth() === today.getMonth() &&
+           createdAt.getFullYear() === today.getFullYear();
+  })();
   const isOutOfStock = stockQuantity === 0;
   const isLowStock = stockQuantity > 0 && stockQuantity <= 5;
 

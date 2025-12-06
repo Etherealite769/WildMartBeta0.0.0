@@ -36,7 +36,7 @@ const ProductDetails = () => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        const response = await axios.get('http://localhost:8080/api/user/profile', {
+        const response = await axios.get('http://localhost:8081/api/user/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setCurrentUser(response.data);
@@ -55,7 +55,7 @@ const ProductDetails = () => {
         return;
       }
       
-      const response = await axios.get('http://localhost:8080/api/user/likes', {
+      const response = await axios.get('http://localhost:8081/api/user/likes', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const likedProducts = Array.isArray(response.data) ? response.data : Array.from(response.data);
@@ -74,7 +74,7 @@ const ProductDetails = () => {
   const fetchProduct = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8080/api/products/${id}`, {
+      const response = await axios.get(`http://localhost:8081/api/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProduct(response.data);
@@ -106,7 +106,7 @@ const ProductDetails = () => {
     
     setAddingToCart(true);
     try {
-      await axios.post('http://localhost:8080/api/cart/add', 
+      await axios.post('http://localhost:8081/api/cart/add', 
         { productId: id, quantity },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
@@ -129,7 +129,7 @@ const ProductDetails = () => {
         setIsLiked(false);
         setLocalLikeCount(prev => Math.max(0, prev - 1));
         
-        await axios.delete(`http://localhost:8080/api/user/likes/${productId}`, {
+        await axios.delete(`http://localhost:8081/api/user/likes/${productId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success('Removed from wishlist');
@@ -138,7 +138,7 @@ const ProductDetails = () => {
         setIsLiked(true);
         setLocalLikeCount(prev => prev + 1);
         
-        await axios.post(`http://localhost:8080/api/user/likes/${productId}`, {}, {
+        await axios.post(`http://localhost:8081/api/user/likes/${productId}`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
         toast.success('Added to wishlist');
@@ -176,7 +176,7 @@ const ProductDetails = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8080/api/products/${id}`, {
+      await axios.delete(`http://localhost:8081/api/products/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
