@@ -78,6 +78,10 @@ const SuccessfulBuy = () => {
             <span className="status-badge">{orderData.orderStatus || 'Pending'}</span>
           </div>
           <div className="detail-row">
+            <span>Payment Status:</span>
+            <span className="status-badge completed">Completed</span>
+          </div>
+          <div className="detail-row">
             <span>Estimated Delivery:</span>
             <span>3-5 Business Days</span>
           </div>

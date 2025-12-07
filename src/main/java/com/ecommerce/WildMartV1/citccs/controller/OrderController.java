@@ -219,7 +219,7 @@ public class OrderController {
             
             // Set order status
             order.setOrderStatus("Pending");
-            order.setPaymentStatus("Pending");
+            order.setPaymentStatus("Completed");
 
             // Calculate total and create order items
             BigDecimal totalAmount = BigDecimal.ZERO;
@@ -470,47 +470,4 @@ public class OrderController {
         return dto;
     }
     
-    // Add the approve payment endpoint
-    @PutMapping("/user/sales/{orderId}/approve-payment")
-    public ResponseEntity<?> approvePayment(
-            @RequestHeader("Authorization") String token,
-            @PathVariable Integer orderId) {
-        try {
-            Integer userId = extractUserIdFromToken(token);
-            User user = userService.getUserById(userId);
-            
-            // Find the order
-            Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
-                    .orElseThrow(() -> new RuntimeException("Order not found"));
-            
-            // Verify that the order contains products sold by the user
-            boolean hasProductsFromSeller = order.getItems().stream()
-                    .anyMatch(item -> item.getProduct().getSeller().getUserId().equals(userId));
-            
-            if (!hasProductsFromSeller) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Unauthorized access to this order"));
-            }
-            
-            // Update payment status to "Approved" and order status to "Delivery in progress"
-            order.setPaymentStatus("Approved");
-            order.setOrderStatus("Delivery in progress");
-            order.setUpdatedAt(LocalDateTime.now());
-            
-            // Save the updated order
-            order = orderRepository.save(order);
-            
-            // Convert to DTO and return
-            OrderDTO orderDTO = convertToDTO(order);
-            
-            return ResponseEntity.ok(Map.of(
-                "message", "Payment approved successfully",
-                "order", orderDTO
-            ));
-        } catch (Exception e) {
-            log.error("Error approving payment", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Failed to approve payment: " + e.getMessage()));
-        }
     }
-}

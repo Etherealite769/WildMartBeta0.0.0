@@ -10,7 +10,6 @@ const SalesOrderDetails = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [approving, setApproving] = useState(false);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -32,34 +31,7 @@ const SalesOrderDetails = () => {
     }
   };
 
-  const handleApprovePayment = async () => {
-    try {
-      setApproving(true);
-      const response = await axios.put(
-        `http://localhost:8080/api/user/sales/${orderId}/approve-payment`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        }
-      );
-      
-      // Update the order state with the approved payment status and delivery in progress status
-      setOrder({
-        ...order,
-        paymentStatus: 'Approved',
-        orderStatus: 'Delivery in progress',
-        updatedAt: response.data.order.updatedAt
-      });
-      
-      // Show success message (you might want to use toast notifications here)
-      alert('Payment approved successfully! Order status updated to Delivery in progress.');
-    } catch (error) {
-      console.error('Error approving payment:', error);
-      alert('Failed to approve payment. Please try again.');
-    } finally {
-      setApproving(false);
-    }
-  };
+
 
   if (loading) {
     return (
@@ -165,19 +137,6 @@ const SalesOrderDetails = () => {
               <strong>₱{totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
             </div>
           </div>
-
-          {/* Payment Approval Button - Only show if payment is pending */}
-          {order.paymentStatus === 'Pending' && (
-            <div className="payment-approval-section">
-              <button 
-                className="btn-approve-payment"
-                onClick={handleApprovePayment}
-                disabled={approving}
-              >
-                {approving ? 'Approving...' : 'Approve Payment'}
-              </button>
-            </div>
-          )}
 
           {/* Buyer Information */}
           <div className="shipping-address-compact">
