@@ -179,41 +179,6 @@
   color: #800000;
 }
 
-/* Payment Approval Section */
-.payment-approval-section {
-  text-align: center;
-  margin: 20px 0;
-  padding: 15px 0;
-  border-top: 1px solid #FFE6A7;
-  border-bottom: 1px solid #FFE6A7;
-}
-
-.btn-approve-payment {
-  background-color: #800000; /* Maroon */
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(128, 0, 0, 0.2);
-}
-
-.btn-approve-payment:hover:not(:disabled) {
-  background-color: #660000;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
-}
-
-.btn-approve-payment:disabled {
-  background-color: #B3B3B3;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
 /* Shipping Address */
 .shipping-address-compact {
   display: flex;
