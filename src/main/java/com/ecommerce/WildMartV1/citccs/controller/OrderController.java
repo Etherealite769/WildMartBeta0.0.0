@@ -406,6 +406,7 @@ public class OrderController {
         dto.setTotalAmount(order.getTotalAmount());
         dto.setOrderStatus(order.getOrderStatus());
         dto.setPaymentStatus(order.getPaymentStatus());
+        dto.setDeliveryConfirmationImage(order.getDeliveryConfirmationImage());
         dto.setShippingAddress(order.getShippingAddress());
         dto.setOrderDate(order.getOrderDate());
         dto.setUpdatedAt(order.getUpdatedAt());
@@ -470,4 +471,50 @@ public class OrderController {
         return dto;
     }
     
+    @PutMapping("/user/sales/{orderId}/mark-delivered")
+    public ResponseEntity<?> markOrderAsDelivered(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Integer orderId,
+            @RequestParam(required = false) String deliveryConfirmationImage) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            User user = userService.getUserById(userId);
+            
+            // Find the order
+            Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+            
+            // Verify that the order contains products sold by the user
+            boolean hasProductsFromSeller = order.getItems().stream()
+                    .anyMatch(item -> item.getProduct().getSeller().getUserId().equals(userId));
+            
+            if (!hasProductsFromSeller) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized access to this order"));
+            }
+            
+            // Update order status to "Delivered"
+            order.setOrderStatus("Delivered");
+            
+            // Set delivery confirmation image if provided
+            if (deliveryConfirmationImage != null && !deliveryConfirmationImage.isEmpty()) {
+                order.setDeliveryConfirmationImage(deliveryConfirmationImage);
+            }
+            
+            // Save the updated order
+            order = orderRepository.save(order);
+            
+            // Convert to DTO to avoid serialization issues
+            OrderDTO orderDTO = convertToDTO(order);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "Order marked as delivered successfully",
+                "order", orderDTO
+            ));
+        } catch (Exception e) {
+            log.error("Error marking order as delivered", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to mark order as delivered: " + e.getMessage()));
+        }
     }
+}

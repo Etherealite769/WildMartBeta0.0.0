@@ -11,6 +11,7 @@ public class OrderDTO {
     private BigDecimal totalAmount;
     private String orderStatus;
     private String paymentStatus;
+    private String deliveryConfirmationImage;
     private String shippingAddress;
     private LocalDateTime orderDate;
     private LocalDateTime updatedAt;
@@ -59,6 +60,14 @@ public class OrderDTO {
     
     public void setPaymentStatus(String paymentStatus) {
         this.paymentStatus = paymentStatus;
+    }
+    
+    public String getDeliveryConfirmationImage() {
+        return deliveryConfirmationImage;
+    }
+    
+    public void setDeliveryConfirmationImage(String deliveryConfirmationImage) {
+        this.deliveryConfirmationImage = deliveryConfirmationImage;
     }
     
     public String getShippingAddress() {
