@@ -175,12 +175,18 @@ const MySales = () => {
                 
                 {expandedOrder === order.orderId && (
                   <div className="order-items-expanded">
+                    {/* Add buyer information in expanded view */}
+                    <div className="shipping-address-compact" style={{ marginBottom: '10px' }}>
+                      <label>Buyer:</label>
+                      <p>{order.buyer?.fullName || order.buyer?.username || 'Unknown Buyer'}</p>
+                    </div>
+                    
                     {order.items?.map(item => (
                       <div key={item.id} className="order-item-compact">
                         <img src={item.product?.imageUrl || '/placeholder.png'} alt={item.product?.productName} />
                         <div className="item-name">{item.product?.productName}</div>
-                        <div className="item-qty">Qty: {item.quantity}</div>
-                        <div className="item-price">₱{Number(item.unitPrice).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className="item-qty" style={{ display: 'none' }}>Qty: {item.quantity}</div>
+                        <div className="item-price">QTY: {item.quantity} × ₱{Number(item.unitPrice).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                       </div>
                     ))}
                     
