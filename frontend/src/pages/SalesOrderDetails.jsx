@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
+import DeliveryConfirmationModal from '../components/DeliveryConfirmationModal';
 import '../styles/OrderDetails.css';
 
 const SalesOrderDetails = () => {
@@ -10,6 +11,8 @@ const SalesOrderDetails = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -31,7 +34,60 @@ const SalesOrderDetails = () => {
     }
   };
 
+  const handleMarkAsDelivered = () => {
+    setShowDeliveryModal(true);
+  };
 
+  const handleDeliveryConfirm = async (imageFile) => {
+    try {
+      setUpdatingStatus(true);
+      setShowDeliveryModal(false);
+      
+      // For now, we'll send the image as base64 string
+      // In a production app, you would typically upload the image separately
+      let imageData = null;
+      if (imageFile) {
+        imageData = await convertToBase64(imageFile);
+      }
+      
+      const response = await axios.put(
+        `http://localhost:8080/api/user/sales/${orderId}/mark-delivered`,
+        null, // No body needed
+        {
+          headers: { 
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          params: {
+            deliveryConfirmationImage: imageData
+          }
+        }
+      );
+      
+      // Update the order in state with the new status
+      setOrder(prevOrder => ({
+        ...prevOrder,
+        orderStatus: 'Delivered',
+        deliveryConfirmationImage: imageData
+      }));
+      
+      alert('Order marked as delivered successfully!');
+    } catch (error) {
+      console.error('Error marking order as delivered:', error);
+      alert('Failed to mark order as delivered: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
 
   if (loading) {
     return (
@@ -96,7 +152,7 @@ const SalesOrderDetails = () => {
             <div className="summary-center">
               <div className="summary-item">
                 <label>Status</label>
-                <span className={`status-badge ${order.orderStatus?.toLowerCase()}`}>
+                <span className={`status-badge ${order.orderStatus?.toLowerCase().replace(/\s+/g, '-')}`}>
                   {order.orderStatus}
                 </span>
               </div>
@@ -115,6 +171,31 @@ const SalesOrderDetails = () => {
               </div>
             </div>
           </div>
+
+          {/* Action Button for Mark as Delivered */}
+          {order.orderStatus !== 'Delivered' && (
+            <div className="order-actions" style={{ 
+              marginBottom: '15px', 
+              textAlign: 'right' 
+            }}>
+              <button 
+                className="btn-primary"
+                onClick={handleMarkAsDelivered}
+                disabled={updatingStatus}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#800000',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: updatingStatus ? 'not-allowed' : 'pointer',
+                  opacity: updatingStatus ? 0.7 : 1
+                }}
+              >
+                {updatingStatus ? 'Updating...' : 'Mark as Delivered'}
+              </button>
+            </div>
+          )}
 
           {/* Detailed Pricing Breakdown */}
           <div className="pricing-breakdown">
@@ -211,6 +292,13 @@ const SalesOrderDetails = () => {
           </div>
         </div>
       </div>
+      
+      {/* Delivery Confirmation Modal */}
+      <DeliveryConfirmationModal
+        isOpen={showDeliveryModal}
+        onConfirm={handleDeliveryConfirm}
+        onCancel={() => setShowDeliveryModal(false)}
+      />
     </div>
   );
 };

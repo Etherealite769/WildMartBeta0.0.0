@@ -47,6 +47,9 @@ public class Order {
     @Column(name = "payment_status", nullable = false)
     private String paymentStatus;
 
+    @Column(name = "delivery_confirmation_image")
+    private String deliveryConfirmationImage;
+
     @Column(name = "shipping_address")
     private String shippingAddress;
 
@@ -60,5 +63,14 @@ public class Order {
     @PreUpdate
     private void updateTimestamp() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and setters for deliveryConfirmationImage
+    public String getDeliveryConfirmationImage() {
+        return deliveryConfirmationImage;
+    }
+
+    public void setDeliveryConfirmationImage(String deliveryConfirmationImage) {
+        this.deliveryConfirmationImage = deliveryConfirmationImage;
     }
 }
