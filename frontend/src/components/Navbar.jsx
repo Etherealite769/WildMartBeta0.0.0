@@ -68,23 +68,26 @@ const Navbar = () => {
         <div className="navbar-actions">
           <div className="user-menu">
             <button className="user-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              <div className="user-avatar">
-                {profileImage ? (
-                  <img 
-                    src={`${profileImage}?t=${Date.now()}`} 
-                    alt="Profile" 
-                    className="avatar-img"
-                    onError={(e) => {
-                      // Handle image load error by resetting profile image
-                      setProfileImage(null);
-                      e.target.onerror = null;
-                    }}
-                  />
-                ) : (
-                  <div className="avatar-placeholder">
-                    {user?.username?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                )}
+              <div className="user-info">
+                <span className="user-fullname">{user?.fullName || user?.username || 'User'}</span>
+                <div className="user-avatar">
+                  {profileImage ? (
+                    <img 
+                      src={`${profileImage}?t=${Date.now()}`} 
+                      alt="Profile" 
+                      className="avatar-img"
+                      onError={(e) => {
+                        // Handle image load error by resetting profile image
+                        setProfileImage(null);
+                        e.target.onerror = null;
+                      }}
+                    />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      {(user?.fullName?.charAt(0) || user?.username?.charAt(0) || 'U').toUpperCase()}
+                    </div>
+                  )}
+                </div>
               </div>
             </button>
             {isMenuOpen && (

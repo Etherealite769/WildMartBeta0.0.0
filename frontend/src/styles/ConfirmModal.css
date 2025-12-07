@@ -25,18 +25,22 @@
   overflow: hidden;
   position: relative;
   z-index: 10001;
+  border: 1px solid var(--secondary-color); /* Gold border to match app theme */
 }
 
 .confirm-modal-header {
   padding: 20px 24px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #FFE6A7; /* Light gold border */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .confirm-modal-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--primary-color); /* Maroon header text */
 }
 
 .confirm-modal-body {
@@ -55,6 +59,8 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+  background-color: #FFF9E6; /* Light gold background */
+  border-top: 1px solid #FFE6A7; /* Light gold border */
 }
 
 .confirm-modal-btn {
@@ -71,6 +77,7 @@
 .confirm-modal-btn.cancel-btn {
   background-color: #f3f4f6;
   color: #6b7280;
+  border: 1px solid #e5e7eb;
 }
 
 .confirm-modal-btn.cancel-btn:hover {
@@ -79,38 +86,48 @@
 }
 
 .confirm-modal-btn.confirm-btn {
-  background-color: #800000;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #660000 100%); /* Maroon gradient */
   color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(128, 0, 0, 0.2);
 }
 
 .confirm-modal-btn.confirm-btn:hover {
-  background-color: #660000;
+  background: linear-gradient(135deg, #660000 0%, #4d0000 100%); /* Darker maroon gradient */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
 }
 
 .confirm-modal-btn.confirm-btn.danger {
-  background-color: #dc2626;
+  background-color: #800000; /* Match the delete button color from MyProducts.css */
+  color: white;
 }
 
 .confirm-modal-btn.confirm-btn.danger:hover {
-  background-color: #b91c1c;
+  background-color: #660000; /* Match the delete button hover color from MyProducts.css */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(128, 0, 0, 0.3);
 }
 
 /* Success variant */
 .confirm-modal-default .confirm-modal-btn.confirm-btn {
-  background-color: #800000;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #660000 100%);
 }
 
 .confirm-modal-default .confirm-modal-btn.confirm-btn:hover {
-  background-color: #660000;
+  background: linear-gradient(135deg, #660000 0%, #4d0000 100%);
 }
 
 /* Warning variant */
 .confirm-modal-warning .confirm-modal-btn.confirm-btn {
-  background-color: #800000;
+  background: linear-gradient(135deg, var(--secondary-color) 0%, #e6ac00 100%); /* Gold gradient */
+  color: var(--primary-color); /* Maroon text */
 }
 
 .confirm-modal-warning .confirm-modal-btn.confirm-btn:hover {
-  background-color: #660000;
+  background: linear-gradient(135deg, #e6ac00 0%, #cc9900 100%); /* Darker gold gradient */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 191, 0, 0.3);
 }
 
 @keyframes fadeIn {
