@@ -15,6 +15,7 @@ public class OrderDTO {
     private LocalDateTime orderDate;
     private LocalDateTime updatedAt;
     private List<OrderItemDTO> items = new ArrayList<>();
+    private UserDTO buyer; // Add buyer information
     
     // Constructors
     public OrderDTO() {}
@@ -90,5 +91,13 @@ public class OrderDTO {
     
     public void setItems(List<OrderItemDTO> items) {
         this.items = items;
+    }
+    
+    public UserDTO getBuyer() {
+        return buyer;
+    }
+    
+    public void setBuyer(UserDTO buyer) {
+        this.buyer = buyer;
     }
 }

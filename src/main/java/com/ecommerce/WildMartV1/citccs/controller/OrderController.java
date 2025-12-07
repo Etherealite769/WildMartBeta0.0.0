@@ -1,11 +1,12 @@
 package com.ecommerce.WildMartV1.citccs.controller;
 
-import com.ecommerce.WildMartV1.citccs.config.JwtService;
 import com.ecommerce.WildMartV1.citccs.dto.OrderDTO;
 import com.ecommerce.WildMartV1.citccs.dto.OrderItemDTO;
 import com.ecommerce.WildMartV1.citccs.dto.ProductDTO;
+import com.ecommerce.WildMartV1.citccs.dto.UserDTO;
 import com.ecommerce.WildMartV1.citccs.model.Cart;
 import com.ecommerce.WildMartV1.citccs.model.CartItem;
+import com.ecommerce.WildMartV1.citccs.model.Category;
 import com.ecommerce.WildMartV1.citccs.model.Order;
 import com.ecommerce.WildMartV1.citccs.model.OrderItem;
 import com.ecommerce.WildMartV1.citccs.model.Product;
@@ -16,9 +17,11 @@ import com.ecommerce.WildMartV1.citccs.repository.OrderRepository;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
 import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
 import com.ecommerce.WildMartV1.citccs.repository.VoucherRepository;
+import com.ecommerce.WildMartV1.citccs.config.JwtService;
 import com.ecommerce.WildMartV1.citccs.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -41,7 +44,8 @@ import java.util.UUID;
 @Slf4j
 public class OrderController {
 
-    private final OrderRepository orderRepository;
+    @Autowired
+    private OrderRepository orderRepository;
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final UserService userService;
@@ -57,10 +61,11 @@ public class OrderController {
             Integer userId = extractUserIdFromToken(token);
             User user = userService.getUserById(userId);
             
-            Order order = orderRepository.findById(orderId)
+            // Use findByIdWithBuyerAndItems to ensure all relationships are loaded
+            Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
             
-            // Verify that the order belongs to the user
+            // Verify that the order belongs to the user (buyer)
             if (!order.getBuyer().getUserId().equals(userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Unauthorized access to this order"));
@@ -77,6 +82,38 @@ public class OrderController {
         }
     }
 
+    @GetMapping("/user/sales/{orderId}")
+    public ResponseEntity<?> getSaleById(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Integer orderId) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            User user = userService.getUserById(userId);
+            
+            // Use findByIdWithBuyerAndItems to ensure all relationships are loaded
+            Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+            
+            // Verify that the order contains products sold by the user
+            boolean hasProductsFromSeller = order.getItems().stream()
+                    .anyMatch(item -> item.getProduct().getSeller().getUserId().equals(userId));
+            
+            if (!hasProductsFromSeller) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized access to this order"));
+            }
+            
+            // Convert to DTO to avoid serialization issues
+            OrderDTO orderDTO = convertToDTO(order);
+            
+            return ResponseEntity.ok(orderDTO);
+        } catch (Exception e) {
+            log.error("Error fetching sale details", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch sale: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/user/orders")
     public ResponseEntity<?> getUserOrders(Authentication authentication) {
         try {
@@ -90,21 +127,47 @@ public class OrderController {
             
             User user = (User) authentication.getPrincipal();
             log.info("Successfully fetched user: {} (ID: {})", user.getEmail(), user.getUserId());
-            
+
             List<Order> orders = orderRepository.findByBuyerOrderByOrderDateDesc(user);
             log.info("Found {} orders for user", orders.size());
-            
+
             // Convert to DTOs to avoid serialization issues
             List<OrderDTO> orderDTOs = new ArrayList<>();
             for (Order order : orders) {
                 orderDTOs.add(convertToDTO(order));
             }
-            
+
             return ResponseEntity.ok(orderDTOs);
         } catch (Exception e) {
             log.error("Error fetching user orders: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to fetch orders: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/user/sales")
+    public ResponseEntity<?> getUserSales(@RequestHeader("Authorization") String token) {
+        try {
+            log.info("Received request for user sales");
+            
+            Integer userId = extractUserIdFromToken(token);
+            User user = userService.getUserById(userId);
+            log.info("Successfully fetched user: {} (ID: {})", user.getEmail(), user.getUserId());
+
+            List<Order> orders = orderRepository.findBySellerOrderByOrderDateDesc(user);
+            log.info("Found {} sales for user", orders.size());
+
+            // Convert to DTOs to avoid serialization issues
+            List<OrderDTO> orderDTOs = new ArrayList<>();
+            for (Order order : orders) {
+                orderDTOs.add(convertToDTO(order));
+            }
+
+            return ResponseEntity.ok(orderDTOs);
+        } catch (Exception e) {
+            log.error("Error fetching user sales: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch sales: " + e.getMessage()));
         }
     }
 
@@ -347,6 +410,17 @@ public class OrderController {
         dto.setOrderDate(order.getOrderDate());
         dto.setUpdatedAt(order.getUpdatedAt());
         
+        // Convert buyer information
+        User buyer = order.getBuyer();
+        if (buyer != null) {
+            UserDTO buyerDTO = new UserDTO();
+            buyerDTO.setUserId(buyer.getUserId());
+            buyerDTO.setUsername(buyer.getUsername());
+            buyerDTO.setEmail(buyer.getEmail());
+            buyerDTO.setFullName(buyer.getFullName());
+            dto.setBuyer(buyerDTO);
+        }
+        
         // Convert order items
         List<OrderItemDTO> itemDTOs = new ArrayList<>();
         for (OrderItem item : order.getItems()) {
@@ -357,8 +431,8 @@ public class OrderController {
             itemDTO.setSubtotal(item.getSubtotal());
             
             // Convert product to DTO
-            if (item.getProduct() != null) {
-                Product product = item.getProduct();
+            Product product = item.getProduct();
+            if (product != null) {
                 ProductDTO productDTO = new ProductDTO();
                 productDTO.setProductId(product.getProductId());
                 productDTO.setProductName(product.getProductName());
@@ -372,6 +446,20 @@ public class OrderController {
                 productDTO.setAverageRating(product.getAverageRating());
                 productDTO.setCreatedAt(product.getCreatedAt());
                 productDTO.setUpdatedAt(product.getUpdatedAt());
+                
+                // Set seller information
+                User seller = product.getSeller();
+                if (seller != null) {
+                    productDTO.setSellerEmail(seller.getEmail());
+                    productDTO.setSellerName(seller.getFullName() != null ? seller.getFullName() : seller.getUsername());
+                }
+                
+                // Set category information
+                Category category = product.getCategory();
+                if (category != null) {
+                    productDTO.setCategoryName(category.getCategoryName());
+                }
+                
                 itemDTO.setProduct(productDTO);
             }
             
