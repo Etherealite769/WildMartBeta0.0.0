@@ -95,6 +95,22 @@
   height: 100%;
 }
 
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-fullname {
+  color: white;
+  font-weight: 500;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
 .user-avatar {
   width: 40px;
   height: 40px;
@@ -218,5 +234,19 @@
   
   .user-btn {
     height: auto;
+  }
+  
+  .user-info {
+    gap: 8px;
+  }
+  
+  .user-fullname {
+    font-size: 14px;
+    max-width: 120px;
+  }
+  
+  .user-avatar {
+    width: 35px;
+    height: 35px;
   }
 }

@@ -204,7 +204,7 @@
 
 .table-header {
   display: grid;
-  grid-template-columns: 70px 2fr 0.6fr 1fr;
+  grid-template-columns: 70px 2fr 1fr 0.6fr 1fr;
   gap: 12px;
   background: #800000;
   color: white;
@@ -226,6 +226,11 @@
   color: white;
 }
 
+.table-header .col-seller {
+  text-align: left;
+  color: white;
+}
+
 .table-header .col-subtotal {
   text-align: right;
   color: white;
@@ -237,7 +242,7 @@
 
 .table-row {
   display: grid;
-  grid-template-columns: 70px 2fr 0.6fr 1fr;
+  grid-template-columns: 70px 2fr 1fr 0.6fr 1fr;
   gap: 12px;
   padding: 12px 15px;
   align-items: center;
@@ -272,6 +277,12 @@
   font-size: 14px;
   color: #666;
   font-weight: 600;
+}
+
+.col-seller {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
 }
 
 .col-subtotal {
@@ -345,6 +356,18 @@
   
   .col-qty::before {
     content: 'Qty: ';
+    color: #666;
+    font-weight: 400;
+  }
+  
+  .col-seller {
+    grid-column: 2;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  
+  .col-seller::before {
+    content: 'Seller: ';
     color: #666;
     font-weight: 400;
   }

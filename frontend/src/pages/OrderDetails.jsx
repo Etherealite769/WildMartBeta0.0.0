@@ -147,23 +147,58 @@ const OrderDetails = () => {
             <div className="table-header">
               <div className="col-image">IMAGE</div>
               <div className="col-product">PRODUCT</div>
+              <div className="col-seller">SELLER</div>
               <div className="col-qty">QTY</div>
               <div className="col-subtotal">AMOUNT</div>
             </div>
             <div className="table-body">
-              {order.items?.map(item => (
-                <div key={item.id} className="table-row">
-                  <div className="col-image">
-                    <img 
-                      src={item.product?.imageUrl || '/placeholder.png'} 
-                      alt={item.product?.productName}
-                    />
+              {order.items?.map(item => {
+                // Extract seller name with fallback logic
+                let sellerName = 'Unknown Seller';
+                const seller = item.product?.seller;
+                
+                if (item.product?.sellerName) {
+                  sellerName = item.product.sellerName;
+                } else if (item.product?.fullName) {
+                  sellerName = item.product.fullName;
+                } else if (item.product?.full_name) {
+                  sellerName = item.product.full_name;
+                } else if (seller) {
+                  if (seller.firstName && seller.lastName) {
+                    sellerName = `${seller.firstName} ${seller.lastName}`;
+                  } else if (seller.fullName) {
+                    sellerName = seller.fullName;
+                  } else if (seller.full_name) {
+                    sellerName = seller.full_name;
+                  } else if (seller.firstName) {
+                    sellerName = seller.firstName;
+                  } else if (seller.lastName) {
+                    sellerName = seller.lastName;
+                  } else if (seller.name) {
+                    sellerName = seller.name;
+                  } else if (seller.username) {
+                    sellerName = seller.username;
+                  } else if (seller.email) {
+                    // Extract name from email (before @)
+                    sellerName = seller.email.split('@')[0];
+                  }
+                }
+                
+                return (
+                  <div key={item.id} className="table-row">
+                    <div className="col-image">
+                      <img 
+                        src={item.product?.imageUrl || '/placeholder.png'} 
+                        alt={item.product?.productName}
+                      />
+                    </div>
+                    <div className="col-product">{item.product?.productName}</div>
+                    <div className="col-seller">{sellerName}</div>
+                    <div className="col-qty">{item.quantity}</div>
+                    <div className="col-subtotal">₱{Number(item.subtotal).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   </div>
-                  <div className="col-product">{item.product?.productName}</div>
-                  <div className="col-qty">{item.quantity}</div>
-                  <div className="col-subtotal">₱{Number(item.subtotal).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
