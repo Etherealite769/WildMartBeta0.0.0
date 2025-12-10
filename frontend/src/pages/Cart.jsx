@@ -10,9 +10,12 @@ const Cart = () => {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
+  const [selectedItemsTotal, setSelectedItemsTotal] = useState(0); // New state for selected items total
   const [loading, setLoading] = useState(true);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [itemToRemove, setItemToRemove] = useState(null);
+  const [selectedItems, setSelectedItems] = useState(new Set()); // For delete selection
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false); // For bulk delete confirmation
 
   useEffect(() => {
     fetchCart();
@@ -20,7 +23,8 @@ const Cart = () => {
 
   useEffect(() => {
     calculateTotal();
-  }, [cartItems]);
+    calculateSelectedItemsTotal(); // Calculate total for selected items
+  }, [cartItems, selectedItems]);
 
   const fetchCart = async () => {
     try {
@@ -45,6 +49,21 @@ const Cart = () => {
     setTotal(sum);
   };
 
+  // Calculate total only for selected items
+  const calculateSelectedItemsTotal = () => {
+    if (selectedItems.size === 0) {
+      setSelectedItemsTotal(0);
+      return;
+    }
+    
+    const selectedItemsArray = cartItems.filter(item => selectedItems.has(item.id));
+    const sum = selectedItemsArray.reduce((acc, item) => {
+      const price = item.priceAtAddition || item.product?.price || 0;
+      return acc + (Number(price) * item.quantity);
+    }, 0);
+    setSelectedItemsTotal(sum);
+  };
+
   const updateQuantity = async (itemId, newQuantity) => {
     // If quantity reaches 0, show confirmation modal
     if (newQuantity === 0) {
@@ -55,16 +74,7 @@ const Cart = () => {
     
     if (newQuantity < 0) return;
     
-    // Check stock availability before updating
-    const item = cartItems.find(item => item.id === itemId);
-    const availableStock = item?.product?.quantityAvailable;
-    
-    if (availableStock !== undefined && newQuantity > availableStock) {
-      toast.error(`Only ${availableStock} item${availableStock !== 1 ? 's' : ''} available in stock`);
-      return;
-    }
-    
-    // Optimistically update the local state first to avoid page reload
+    // Optimistically update the UI
     setCartItems(prevItems => 
       prevItems.map(item => 
         item.id === itemId ? { ...item, quantity: newQuantity } : item
@@ -76,15 +86,14 @@ const Cart = () => {
         { quantity: newQuantity },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
-      // No toast notification - silent update as requested
     } catch (error) {
+      // Revert the optimistic update if the request fails
+      fetchCart(); // Refresh the cart to get the actual state
+      
       console.error('Error updating quantity:', error);
-      
-      // Revert the optimistic update on error
-      fetchCart();
-      
-      if (error.response?.status === 403) {
-        toast.error('Authorization failed. Your session may have expired. Please log in again.');
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+        localStorage.removeItem('token');
         setTimeout(() => {
           navigate('/login');
         }, 3000);
@@ -122,14 +131,65 @@ const Cart = () => {
     setItemToRemove(null);
   };
 
+  // Selection functions for delete
+  const toggleSelectItem = (itemId) => {
+    const newSelectedItems = new Set(selectedItems);
+    if (newSelectedItems.has(itemId)) {
+      newSelectedItems.delete(itemId);
+    } else {
+      newSelectedItems.add(itemId);
+    }
+    setSelectedItems(newSelectedItems);
+  };
 
+  const selectAllItems = () => {
+    if (selectedItems.size === cartItems.length) {
+      // If all items are selected, deselect all
+      setSelectedItems(new Set());
+    } else {
+      // Otherwise, select all items
+      const allItemIds = cartItems.map(item => item.id);
+      setSelectedItems(new Set(allItemIds));
+    }
+  };
+
+  const confirmBulkDelete = () => {
+    if (selectedItems.size === 0) return;
+    setShowBulkDeleteModal(true);
+  };
+
+  const executeBulkDelete = async () => {
+    try {
+      // Create array of promises for all delete requests
+      const deletePromises = Array.from(selectedItems).map(itemId =>
+        axios.put(`http://localhost:8080/api/cart/items/${itemId}`, 
+          { quantity: 0 },
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
+        )
+      );
+      
+      // Execute all delete requests
+      await Promise.all(deletePromises);
+      
+      // Clear selection and refresh cart
+      setSelectedItems(new Set());
+      setShowBulkDeleteModal(false);
+      fetchCart();
+      toast.success(`${selectedItems.size} item${selectedItems.size !== 1 ? 's' : ''} removed from cart`);
+    } catch (error) {
+      console.error('Error removing items:', error);
+      toast.error('Failed to remove items. Please try again.');
+      setShowBulkDeleteModal(false);
+    }
+  };
 
   const handleCheckout = () => {
-    if (cartItems.length === 0) {
-      toast.error('Your cart is empty');
-      return;
-    }
+    // Navigate to checkout page
     navigate('/checkout');
+  };
+
+  const cancelBulkDelete = () => {
+    setShowBulkDeleteModal(false);
   };
 
   if (loading) {
@@ -153,94 +213,117 @@ const Cart = () => {
 
         {cartItems.length > 0 ? (
           <div className="cart-content">
-            <div className="cart-items">
-              {cartItems.map(item => {
-                const productName = item.product?.productName || item.product?.name || 'Product';
-                const productImage = item.product?.imageUrl || '/placeholder.png';
-                const itemPrice = Number(item.priceAtAddition || item.product?.price || 0);
-                const itemTotal = itemPrice * item.quantity;
-                
-                // Enhanced seller name extraction to get full name
-                let sellerName = 'Unknown Seller';
-                const seller = item.product?.seller;
-                
-                if (item.product?.sellerName) {
-                  sellerName = item.product.sellerName;
-                } else if (item.product?.fullName) { // Check for fullName field
-                  sellerName = item.product.fullName;
-                } else if (item.product?.full_name) { // Check for full_name field
-                  sellerName = item.product.full_name;
-                } else if (seller) {
-                  // Try to get full name from various possible fields
-                  if (seller.firstName && seller.lastName) {
-                    sellerName = `${seller.firstName} ${seller.lastName}`;
-                  } else if (seller.fullName) { // Check for fullName in seller object
-                    sellerName = seller.fullName;
-                  } else if (seller.full_name) { // Check for full_name in seller object
-                    sellerName = seller.full_name;
-                  } else if (seller.firstName) {
-                    sellerName = seller.firstName;
-                  } else if (seller.lastName) {
-                    sellerName = seller.lastName;
-                  } else if (seller.name) {
-                    sellerName = seller.name;
-                  } else if (seller.username) {
-                    sellerName = seller.username;
-                  } else if (seller.email) {
-                    // Extract name from email if no other name is available
-                    const emailName = seller.email.split('@')[0];
-                    // Convert dots/hyphens/underscores to spaces and capitalize
-                    sellerName = emailName.replace(/[-_.]/g, ' ')
-                      .split(' ')
-                      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                      .join(' ');
+            <div className="cart-main">
+              {/* Selection controls for delete */}
+              <div className="selection-controls">
+                <div className="selection-actions">
+                  <label className="select-all-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.size === cartItems.length && cartItems.length > 0}
+                      onChange={selectAllItems}
+                    />
+                    Select All
+                  </label>
+                  
+                  <button 
+                    className="btn-action-secondary"
+                    onClick={confirmBulkDelete}
+                    disabled={selectedItems.size === 0}
+                  >
+                    Delete Selected ({selectedItems.size})
+                  </button>
+                </div>
+              </div>
+              
+              <div className="cart-items">
+                {cartItems.map(item => {
+                  const productName = item.product?.productName || item.product?.name || 'Product';
+                  const productImage = item.product?.imageUrl || '/placeholder.png';
+                  const itemPrice = Number(item.priceAtAddition || item.product?.price || 0);
+                  const itemTotal = itemPrice * item.quantity;
+                  const isSelected = selectedItems.has(item.id);
+                  const quantityAvailable = item.product?.quantityAvailable || 0;
+                  
+                  // Enhanced seller name extraction to get full name
+                  let sellerName = 'Unknown Seller';
+                  
+                  // Try to get seller information from the nested seller object
+                  const seller = item.product?.seller;
+                  
+                  if (seller) {
+                    // Get full name from seller object
+                    if (seller.fullName) {
+                      sellerName = seller.fullName;
+                    } else if (seller.username) {
+                      sellerName = seller.username;
+                    } else if (seller.email) {
+                      sellerName = seller.email;
+                    }
+                  } else if (item.product?.sellerName) {
+                    sellerName = item.product.sellerName;
+                  } else if (item.product?.fullName) { // Check for fullName field
+                    sellerName = item.product.fullName;
+                  } else if (item.product?.full_name) { // Check for full_name field
+                    sellerName = item.product.full_name;
                   }
-                }
-                
-                return (
-                  <div key={item.id} className="cart-item">
-                    <div className="item-image">
-                      <img 
-                        src={productImage} 
-                        alt={productName}
-                        onError={(e) => {
-                          e.target.src = '/placeholder.png';
-                          e.target.onerror = null;
-                        }}
-                      />
+                  
+                  return (
+                    <div key={item.id} className={`cart-item ${isSelected ? 'selected' : ''}`}>
+                      <div className="item-selection">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectItem(item.id)}
+                        />
+                      </div>
+                      <div className="item-image">
+                        <img 
+                          src={productImage} 
+                          alt={productName}
+                          onError={(e) => {
+                            e.target.src = '/placeholder.png';
+                            e.target.onerror = null;
+                          }}
+                        />
+                      </div>
+                      <div className="item-details">
+                        <h3>{productName}</h3>
+                        <p className="item-seller">by {sellerName}</p>
+                        <p className="unit-price">Unit Price: ₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="item-quantity-controls">
+                        <button 
+                          className="quantity-btn"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          -
+                        </button>
+                        <span className="quantity-display">{item.quantity}</span>
+                        <button 
+                          className="quantity-btn"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          disabled={item.quantity >= quantityAvailable}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <div className="cart-item-actions">
+                        <div className="item-total">
+                          <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="item-details">
-                      <h3>{productName}</h3>
-                      <p className="item-seller">by {sellerName}</p>
-                      <p className="unit-price">₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                    </div>
-                    <div className="item-quantity-controls">
-                      <button 
-                        className="quantity-btn"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      >
-                        -
-                      </button>
-                      <span className="quantity-display">{item.quantity}</span>
-                      <button 
-                        className="quantity-btn"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div className="item-total">
-                      <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             <div className="cart-summary">
               <div className="summary-row">
                 <span>Subtotal:</span>
-                <span>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>₱{selectedItemsTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="summary-row">
                 <span>Shipping:</span>
@@ -248,11 +331,12 @@ const Cart = () => {
               </div>
               <div className="summary-row total">
                 <strong>Total:</strong>
-                <strong>₱{total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                <strong className="total-amount">₱{selectedItemsTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
-              <button 
+              <button
                 className="btn-checkout"
                 onClick={handleCheckout}
+                disabled={selectedItemsTotal === 0}
               >
                 Proceed to Checkout
               </button>
@@ -286,6 +370,17 @@ const Cart = () => {
         onCancel={cancelRemove}
         confirmText="Yes, Remove"
         cancelText="No, Keep It"
+        type="danger"
+      />
+      
+      <ConfirmModal
+        isOpen={showBulkDeleteModal}
+        title="Remove Items"
+        message={`Are you sure you want to remove ${selectedItems.size} selected item${selectedItems.size !== 1 ? 's' : ''} from your cart?`}
+        onConfirm={executeBulkDelete}
+        onCancel={cancelBulkDelete}
+        confirmText="Yes, Remove"
+        cancelText="No, Keep Them"
         type="danger"
       />
     </div>
