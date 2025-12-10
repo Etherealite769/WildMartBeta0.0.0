@@ -106,8 +106,8 @@ const SalesOrderDetails = () => {
         <Navbar />
         <div className="order-details-container">
           <div className="error-message">{error || 'Order not found'}</div>
-          <button className="btn-back" onClick={() => navigate('/my-sales')}>
-            Back to My Sales
+          <button className="btn-back" onClick={() => navigate('/my-products')}>
+            Back to My Products
           </button>
         </div>
       </div>
@@ -126,8 +126,8 @@ const SalesOrderDetails = () => {
       
       <div className="order-details-container">
         <div className="order-details-header">
-          <button className="btn-back" onClick={() => navigate('/my-sales')}>
-            ← Back to My Sales
+          <button className="btn-back" onClick={() => navigate('/my-products')}>
+            ← Back to My Products
           </button>
         </div>
 
