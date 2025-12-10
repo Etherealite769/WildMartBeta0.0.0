@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import '../styles/MyOrders.css';
 
 const MyOrders = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // Add this to access navigation state
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('all');
   const [expandedOrder, setExpandedOrder] = useState(null);
@@ -13,8 +15,16 @@ const MyOrders = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Check for order success message from checkout
+    const locationState = location.state;
+    if (locationState?.orderSuccess) {
+      toast.success('Order placed successfully!');
+      // Clear the location state so the message doesn't appear again on refresh
+      window.history.replaceState({}, document.title);
+    }
+    
     fetchOrders();
-  }, []);
+  }, [location.state]);
 
   const fetchOrders = async () => {
     try {
@@ -66,6 +76,13 @@ const MyOrders = () => {
     }
   };
 
+  // Add a refresh function to manually refresh orders
+  const refreshOrders = async () => {
+    setLoading(true);
+    setError(null);
+    await fetchOrders();
+  };
+
   const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
     if (filter === 'all') return true;
     return order.orderStatus?.toLowerCase() === filter.toLowerCase();
@@ -77,7 +94,8 @@ const MyOrders = () => {
         <Navbar />
         <div className="my-orders-container">
           <div className="loading-state">
-            <p>Loading orders...</p>
+            <div className="loading-spinner"></div>
+            <p>Loading your orders...</p>
           </div>
         </div>
       </div>
@@ -91,7 +109,7 @@ const MyOrders = () => {
         <div className="my-orders-container">
           <div className="error-state">
             <p>{error}</p>
-            <button onClick={fetchOrders} className="btn-refresh">Retry</button>
+            <button onClick={refreshOrders} className="btn-refresh">Retry</button>
           </div>
         </div>
       </div>
@@ -106,30 +124,45 @@ const MyOrders = () => {
         <div className="sticky-header">
           <h2>My Orders</h2>
 
-          <div className="filter-tabs">
+          <div className="header-actions">
+            <div className="filter-tabs">
+              <button 
+                className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                All Orders
+              </button>
+              <button 
+                className={`filter-btn ${filter === 'pending' ? 'active' : ''}`}
+                onClick={() => setFilter('pending')}
+              >
+                Pending
+              </button>
+              <button 
+                className={`filter-btn ${filter === 'shipped' ? 'active' : ''}`}
+                onClick={() => setFilter('shipped')}
+              >
+                Shipped
+              </button>
+              <button 
+                className={`filter-btn ${filter === 'delivered' ? 'active' : ''}`}
+                onClick={() => setFilter('delivered')}
+              >
+                Delivered
+              </button>
+            </div>
             <button 
-              className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-              onClick={() => setFilter('all')}
+              onClick={refreshOrders} 
+              className="btn-refresh-header"
+              disabled={loading}
             >
-              All Orders
-            </button>
-            <button 
-              className={`filter-btn ${filter === 'pending' ? 'active' : ''}`}
-              onClick={() => setFilter('pending')}
-            >
-              Pending
-            </button>
-            <button 
-              className={`filter-btn ${filter === 'shipped' ? 'active' : ''}`}
-              onClick={() => setFilter('shipped')}
-            >
-              Shipped
-            </button>
-            <button 
-              className={`filter-btn ${filter === 'delivered' ? 'active' : ''}`}
-              onClick={() => setFilter('delivered')}
-            >
-              Delivered
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                <path d="M16 16h5v5"></path>
+              </svg>
+              {loading ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
         </div>
