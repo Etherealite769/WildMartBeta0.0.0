@@ -48,16 +48,21 @@ const Checkout = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       console.log('Checkout - Cart response:', response.data);
+      console.log('Checkout - Cart items structure:', response.data.items || []);
       let items = response.data.items || [];
       console.log('Checkout - Items array:', items);
       console.log('Checkout - Items length:', items.length);
       
       // Filter items based on selected items from cart if provided
       const selectedItems = location.state?.selectedItems;
+      console.log('Checkout - Selected items from location state:', selectedItems);
+      
       if (selectedItems && selectedItems.length > 0) {
+        console.log('Checkout - Filtering items by selected IDs');
         items = items.filter(item => selectedItems.includes(item.id));
         console.log('Checkout - Filtered items:', items);
       }
+      // If no selected items, we show all items (backward compatibility)
       
       setCartItems(items);
       
@@ -189,10 +194,23 @@ const Checkout = () => {
         paymentMethod: paymentMethod
       };
       
+      // Add selected item IDs if we have selected items
+      // Note: Even if no items were explicitly selected, we should have all item IDs from the cart
+      const selectedItems = location.state?.selectedItems;
+      console.log('Checkout - Selected items from location state:', selectedItems);
+      
+      if (selectedItems && selectedItems.length > 0) {
+        orderData.selectedItemIds = selectedItems.join(',');
+        console.log('Checkout - Sending selected item IDs:', orderData.selectedItemIds);
+        console.log('Checkout - Selected item IDs type:', typeof selectedItems[0]);
+      }
+      
       // Add voucher code if selected
       if (selectedVoucher) {
         orderData.voucherCode = selectedVoucher.discountCode;
       }
+      
+      console.log('Checkout - Order data being sent:', orderData);
       
       const response = await axios.post('http://localhost:8080/api/orders/checkout', 
         orderData,
@@ -200,9 +218,16 @@ const Checkout = () => {
       );
 
       toast.success('Order placed successfully!');
-      navigate('/success', { state: { orderData: response.data } });
+      // Redirect to MyOrders page with success message
+      navigate('/my-orders', { 
+        state: { 
+          orderSuccess: true,
+          orderData: response.data
+        } 
+      });
     } catch (error) {
       console.error('Error placing order:', error);
+      console.error('Error response:', error.response?.data);
       
       if (error.response?.data?.error) {
         toast.error(error.response.data.error);
@@ -241,9 +266,13 @@ const Checkout = () => {
           {/* Order Summary - Will be sticky/floating */}
           <div className="checkout-section order-summary-section">
             <h3>Order Summary</h3>
-            {location.state?.selectedItems && location.state.selectedItems.length > 0 && (
+            {location.state?.selectedItems && location.state.selectedItems.length > 0 ? (
               <div className="selected-items-info">
                 <p>Checking out {cartItems.length} selected item{cartItems.length !== 1 ? 's' : ''} from your cart</p>
+              </div>
+            ) : (
+              <div className="selected-items-info">
+                <p>Checking out all {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart</p>
               </div>
             )}
             <div className="order-items">
@@ -466,7 +495,11 @@ const Checkout = () => {
             <div className="checkout-actions">
               <button 
                 className="btn-back"
-                onClick={() => navigate('/cart')}
+                onClick={() => navigate('/cart', { 
+                  state: { 
+                    selectedItems: location.state?.selectedItems 
+                  } 
+                })}
                 disabled={processing}
               >
                 ← Back to Cart

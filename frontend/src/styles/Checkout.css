@@ -547,17 +547,3 @@
   }
 }
 
-.selected-items-info {
-  background: #E8F4FD;
-  border: 1px solid #B8DAF1;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  color: #1e90ff;
-  font-weight: 500;
-}
-
-.selected-items-info p {
-  margin: 0;
-}

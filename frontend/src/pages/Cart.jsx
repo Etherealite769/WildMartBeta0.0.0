@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
@@ -8,6 +8,7 @@ import '../styles/Cart.css';
 
 const Cart = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // Add this to get navigation state
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [selectedItemsTotal, setSelectedItemsTotal] = useState(0); // New state for selected items total
@@ -26,13 +27,22 @@ const Cart = () => {
     calculateSelectedItemsTotal(); // Calculate total for selected items
   }, [cartItems, selectedItems]);
 
+  // Add effect to restore selected items when coming back from checkout
+  useEffect(() => {
+    const previouslySelectedItems = location.state?.selectedItems;
+    if (previouslySelectedItems && previouslySelectedItems.length > 0) {
+      setSelectedItems(new Set(previouslySelectedItems));
+    }
+  }, [location.state]);
+
   const fetchCart = async () => {
     try {
       setLoading(true);
       const response = await axios.get('http://localhost:8080/api/cart', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      console.log('Cart response:', response.data);
+      console.log('Cart - Full cart response:', response.data);
+      console.log('Cart - Items array:', response.data.items || []);
       setCartItems(response.data.items || []);
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -51,8 +61,13 @@ const Cart = () => {
 
   // Calculate total only for selected items
   const calculateSelectedItemsTotal = () => {
+    // If no items are selected, show total for all items
     if (selectedItems.size === 0) {
-      setSelectedItemsTotal(0);
+      const sum = cartItems.reduce((acc, item) => {
+        const price = item.priceAtAddition || item.product?.price || 0;
+        return acc + (Number(price) * item.quantity);
+      }, 0);
+      setSelectedItemsTotal(sum);
       return;
     }
     
@@ -133,22 +148,28 @@ const Cart = () => {
 
   // Selection functions for delete
   const toggleSelectItem = (itemId) => {
+    console.log('Cart - Toggling selection for item ID:', itemId, 'Current type:', typeof itemId);
     const newSelectedItems = new Set(selectedItems);
     if (newSelectedItems.has(itemId)) {
       newSelectedItems.delete(itemId);
+      console.log('Cart - Item deselected, new selection size:', newSelectedItems.size);
     } else {
       newSelectedItems.add(itemId);
+      console.log('Cart - Item selected, new selection size:', newSelectedItems.size);
     }
     setSelectedItems(newSelectedItems);
   };
 
   const selectAllItems = () => {
+    console.log('Cart - Select all clicked, current selection size:', selectedItems.size, 'Total items:', cartItems.length);
     if (selectedItems.size === cartItems.length) {
       // If all items are selected, deselect all
       setSelectedItems(new Set());
+      console.log('Cart - All items deselected');
     } else {
       // Otherwise, select all items
       const allItemIds = cartItems.map(item => item.id);
+      console.log('Cart - Selecting all item IDs:', allItemIds);
       setSelectedItems(new Set(allItemIds));
     }
   };
@@ -184,8 +205,22 @@ const Cart = () => {
   };
 
   const handleCheckout = () => {
-    // Navigate to checkout page
-    navigate('/checkout');
+    // Navigate to checkout page with selected items
+    // If no items are selected, send all items
+    const itemsToCheckout = selectedItems.size > 0 
+      ? Array.from(selectedItems) 
+      : cartItems.map(item => item.id);
+      
+    console.log('Cart - Selected items to checkout:', itemsToCheckout);
+    console.log('Cart - Selected items set size:', selectedItems.size);
+    console.log('Cart - Total cart items:', cartItems.length);
+    console.log('Cart - Cart items structure:', cartItems);
+      
+    navigate('/checkout', { 
+      state: { 
+        selectedItems: itemsToCheckout
+      } 
+    });
   };
 
   const cancelBulkDelete = () => {
@@ -336,7 +371,7 @@ const Cart = () => {
               <button
                 className="btn-checkout"
                 onClick={handleCheckout}
-                disabled={selectedItemsTotal === 0}
+                disabled={cartItems.length === 0}
               >
                 Proceed to Checkout
               </button>

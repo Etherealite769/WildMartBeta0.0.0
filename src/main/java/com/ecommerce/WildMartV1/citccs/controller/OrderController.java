@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -60,20 +61,20 @@ public class OrderController {
         try {
             Integer userId = extractUserIdFromToken(token);
             User user = userService.getUserById(userId);
-            
+
             // Use findByIdWithBuyerAndItems to ensure all relationships are loaded
             Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
-            
+
             // Verify that the order belongs to the user (buyer)
             if (!order.getBuyer().getUserId().equals(userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Unauthorized access to this order"));
             }
-            
+
             // Convert to DTO to avoid serialization issues
             OrderDTO orderDTO = convertToDTO(order);
-            
+
             return ResponseEntity.ok(orderDTO);
         } catch (Exception e) {
             log.error("Error fetching order details", e);
@@ -89,23 +90,23 @@ public class OrderController {
         try {
             Integer userId = extractUserIdFromToken(token);
             User user = userService.getUserById(userId);
-            
+
             // Use findByIdWithBuyerAndItems to ensure all relationships are loaded
             Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
-            
+
             // Verify that the order contains products sold by the user
             boolean hasProductsFromSeller = order.getItems().stream()
                     .anyMatch(item -> item.getProduct().getSeller().getUserId().equals(userId));
-            
+
             if (!hasProductsFromSeller) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Unauthorized access to this order"));
             }
-            
+
             // Convert to DTO to avoid serialization issues
             OrderDTO orderDTO = convertToDTO(order);
-            
+
             return ResponseEntity.ok(orderDTO);
         } catch (Exception e) {
             log.error("Error fetching sale details", e);
@@ -118,13 +119,13 @@ public class OrderController {
     public ResponseEntity<?> getUserOrders(Authentication authentication) {
         try {
             log.info("Received request for user orders");
-            
+
             if (authentication == null || !(authentication.getPrincipal() instanceof User)) {
                 log.warn("Authentication is null or principal is not a User");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "User not authenticated"));
+                        .body(Map.of("error", "User not authenticated"));
             }
-            
+
             User user = (User) authentication.getPrincipal();
             log.info("Successfully fetched user: {} (ID: {})", user.getEmail(), user.getUserId());
 
@@ -149,7 +150,7 @@ public class OrderController {
     public ResponseEntity<?> getUserSales(@RequestHeader("Authorization") String token) {
         try {
             log.info("Received request for user sales");
-            
+
             Integer userId = extractUserIdFromToken(token);
             User user = userService.getUserById(userId);
             log.info("Successfully fetched user: {} (ID: {})", user.getEmail(), user.getUserId());
@@ -188,17 +189,65 @@ public class OrderController {
                         .body(Map.of("error", "Cart is empty"));
             }
 
-            // Validate stock availability
-            for (CartItem cartItem : cart.getItems()) {
+            // Get selected item IDs from request, if provided
+            List<Long> selectedItemIds = new ArrayList<>();
+            String selectedItemIdsStr = checkoutData.get("selectedItemIds");
+            if (selectedItemIdsStr != null && !selectedItemIdsStr.isEmpty()) {
+                try {
+                    // Parse comma-separated item IDs
+                    String[] ids = selectedItemIdsStr.split(",");
+                    for (String id : ids) {
+                        selectedItemIds.add(Long.parseLong(id.trim()));
+                    }
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid item IDs format: {}", selectedItemIdsStr);
+                }
+            }
+
+            // Log for debugging
+            log.info("Selected item IDs: {}", selectedItemIds);
+
+            // Log all cart item IDs for comparison
+            log.info("All cart item IDs:");
+            for (CartItem item : cart.getItems()) {
+                log.info("  Cart item ID: {}, Product: {}", item.getId(), item.getProduct().getProductName());
+            }
+
+            // Filter cart items to only include selected items (if any selected)
+            List<CartItem> itemsToProcess = cart.getItems();
+            if (!selectedItemIds.isEmpty()) {
+                log.info("Filtering items - looking for {} selected items", selectedItemIds.size());
+                itemsToProcess = cart.getItems().stream()
+                        .filter(item -> {
+                            boolean matches = selectedItemIds.contains(item.getId());
+                            log.info("CartItem ID {} matches selection: {}", item.getId(), matches);
+                            return matches;
+                        })
+                        .collect(Collectors.toList());
+
+                // Only check for empty itemsToProcess if we were trying to filter
+                // If no items match the filter, that's an error
+                if (itemsToProcess.isEmpty()) {
+                    log.warn("No selected items found in cart after filtering");
+                    return ResponseEntity.badRequest()
+                            .body(Map.of("error", "No selected items found in cart"));
+                }
+                log.info("Filtered to {} items for processing", itemsToProcess.size());
+            }
+            // If selectedItemIds is empty, we process all items (backward compatibility)
+
+            log.info("Items to process count: {}", itemsToProcess.size());
+
+            // Validate stock availability for items to process
+            for (CartItem cartItem : itemsToProcess) {
                 Product product = cartItem.getProduct();
                 if (product.getQuantityAvailable() < cartItem.getQuantity()) {
                     return ResponseEntity.badRequest()
                             .body(Map.of(
-                                "error", "Insufficient stock for product: " + product.getProductName(),
-                                "productName", product.getProductName(),
-                                "available", product.getQuantityAvailable(),
-                                "requested", cartItem.getQuantity()
-                            ));
+                                    "error", "Insufficient stock for product: " + product.getProductName(),
+                                    "productName", product.getProductName(),
+                                    "available", product.getQuantityAvailable(),
+                                    "requested", cartItem.getQuantity()));
                 }
             }
 
@@ -206,45 +255,50 @@ public class OrderController {
             Order order = new Order();
             order.setBuyer(buyer);
             order.setOrderNumber("ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-            
+
             // Get shipping address from request or use user's default
             String shippingAddress = checkoutData.get("shippingAddress");
             if (shippingAddress == null || shippingAddress.trim().isEmpty()) {
                 shippingAddress = buyer.getShippingAddress();
             }
             order.setShippingAddress(shippingAddress);
-            
+
             // Set payment method from request
             String paymentMethod = checkoutData.getOrDefault("paymentMethod", "Cash on Delivery");
-            
+
             // Set order status
             order.setOrderStatus("Pending");
             order.setPaymentStatus("Completed");
 
             // Calculate total and create order items
             BigDecimal totalAmount = BigDecimal.ZERO;
-            for (CartItem cartItem : cart.getItems()) {
+            List<OrderItem> orderItems = new ArrayList<>();
+
+            for (CartItem cartItem : itemsToProcess) {
                 Product product = cartItem.getProduct();
-                
+
                 // Use price at addition or current price
                 BigDecimal unitPrice = cartItem.getPriceAtAddition();
                 if (unitPrice == null) {
                     unitPrice = product.getPrice();
                 }
-                
+
                 // Create order item
                 OrderItem orderItem = new OrderItem(order, product, cartItem.getQuantity(), unitPrice);
                 totalAmount = totalAmount.add(orderItem.getSubtotal());
-                order.getItems().add(orderItem);
-                
+                orderItems.add(orderItem);
+
                 // Update product stock
                 product.setQuantityAvailable(product.getQuantityAvailable() - cartItem.getQuantity());
                 productRepository.save(product);
             }
-            
+
+            // Set order items
+            order.setItems(orderItems);
+
             // Calculate shipping fee (5% of subtotal)
             BigDecimal shippingFee = totalAmount.multiply(BigDecimal.valueOf(0.05));
-            
+
             // Apply voucher discount if provided
             String voucherCode = checkoutData.get("voucherCode");
             BigDecimal discountAmount = BigDecimal.ZERO;
@@ -252,35 +306,35 @@ public class OrderController {
                 Optional<Voucher> voucherOpt = voucherRepository.findByDiscountCode(voucherCode.trim());
                 if (voucherOpt.isPresent()) {
                     Voucher voucher = voucherOpt.get();
-                    
+
                     // Validate voucher
                     if (!voucher.getIsActive()) {
                         return ResponseEntity.badRequest()
                                 .body(Map.of("error", "This voucher is no longer active"));
                     }
-                    
+
                     if (voucher.getValidFrom().isAfter(LocalDateTime.now())) {
                         return ResponseEntity.badRequest()
                                 .body(Map.of("error", "This voucher is not yet valid"));
                     }
-                    
+
                     if (voucher.getValidUntil().isBefore(LocalDateTime.now())) {
                         return ResponseEntity.badRequest()
                                 .body(Map.of("error", "This voucher has expired"));
                     }
-                    
-                    if (voucher.getUsageLimit() != null && 
-                        voucher.getUsageCount() >= voucher.getUsageLimit()) {
+
+                    if (voucher.getUsageLimit() != null &&
+                            voucher.getUsageCount() >= voucher.getUsageLimit()) {
                         return ResponseEntity.badRequest()
                                 .body(Map.of("error", "This voucher has reached its usage limit"));
                     }
-                    
-                    if (voucher.getMinimumOrderAmount() != null && 
-                        totalAmount.compareTo(voucher.getMinimumOrderAmount()) < 0) {
+
+                    if (voucher.getMinimumOrderAmount() != null &&
+                            totalAmount.compareTo(voucher.getMinimumOrderAmount()) < 0) {
                         return ResponseEntity.badRequest()
                                 .body(Map.of("error", "Minimum order amount not met for this voucher"));
                     }
-                    
+
                     // Apply discount based on type
                     switch (voucher.getDiscountType()) {
                         case PERCENTAGE:
@@ -295,16 +349,16 @@ public class OrderController {
                             discountAmount = shippingFee;
                             break;
                     }
-                    
+
                     // Ensure discount doesn't exceed total amount + shipping
                     BigDecimal maxDiscount = totalAmount.add(shippingFee);
                     if (discountAmount.compareTo(maxDiscount) > 0) {
                         discountAmount = maxDiscount;
                     }
-                    
+
                     // Set the voucher on the order
                     order.setDiscount(voucher);
-                    
+
                     // Increment usage count
                     voucher.setUsageCount(voucher.getUsageCount() + 1);
                     voucherRepository.save(voucher);
@@ -313,7 +367,7 @@ public class OrderController {
                             .body(Map.of("error", "Invalid voucher code"));
                 }
             }
-            
+
             // Add shipping fee to total, then apply discount
             totalAmount = totalAmount.add(shippingFee).subtract(discountAmount);
             order.setTotalAmount(totalAmount);
@@ -323,8 +377,20 @@ public class OrderController {
             // Save order
             order = orderRepository.save(order);
 
-            // Clear cart
-            cart.getItems().clear();
+            // Remove processed items from cart (instead of clearing entire cart)
+            if (!selectedItemIds.isEmpty()) {
+                // Only remove selected items
+                log.info("Removing {} selected items from cart", selectedItemIds.size());
+                cart.getItems().removeIf(item -> {
+                    boolean shouldRemove = selectedItemIds.contains(item.getId());
+                    log.info("CartItem ID {} will be removed: {}", item.getId(), shouldRemove);
+                    return shouldRemove;
+                });
+            } else {
+                // If no items were specifically selected, clear the entire cart
+                log.info("Clearing entire cart");
+                cart.getItems().clear();
+            }
             cartRepository.save(cart);
 
             // Prepare response
@@ -342,7 +408,7 @@ public class OrderController {
             response.put("message", "Order placed successfully");
 
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             log.error("Error during checkout", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -360,31 +426,31 @@ public class OrderController {
 
     private Integer extractUserIdFromToken(String token) {
         try {
-            log.info("Extracting userId from token. Original token: {}", 
-                token != null && token.length() > 7 ? token.substring(0, 7) + "***" : "null or empty");
-                
+            log.info("Extracting userId from token. Original token: {}",
+                    token != null && token.length() > 7 ? token.substring(0, 7) + "***" : "null or empty");
+
             if (token != null && token.startsWith("Bearer ")) {
                 token = token.substring(7);
-                log.info("Removed Bearer prefix. New token: {}", 
-                    token != null && token.length() > 7 ? token.substring(0, 7) + "***" : "null or empty");
+                log.info("Removed Bearer prefix. New token: {}",
+                        token != null && token.length() > 7 ? token.substring(0, 7) + "***" : "null or empty");
             }
-            
+
             // Add extra validation for empty or null token
             if (token == null || token.isEmpty()) {
                 log.warn("Token is missing or empty");
                 throw new RuntimeException("Token is missing or empty");
             }
-            
+
             log.info("Attempting to extract username from token");
             String email = jwtService.extractUsername(token);
             log.info("Extracted email: {}", email);
-            
+
             // Add validation for extracted email
             if (email == null || email.isEmpty()) {
                 log.warn("Invalid token: email not found");
                 throw new RuntimeException("Invalid token: email not found");
             }
-            
+
             log.info("Looking up user by email: {}", email);
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> {
@@ -398,7 +464,7 @@ public class OrderController {
             throw new RuntimeException("Invalid token: " + e.getMessage(), e);
         }
     }
-    
+
     private OrderDTO convertToDTO(Order order) {
         OrderDTO dto = new OrderDTO();
         dto.setOrderId(order.getOrderId());
@@ -410,7 +476,7 @@ public class OrderController {
         dto.setShippingAddress(order.getShippingAddress());
         dto.setOrderDate(order.getOrderDate());
         dto.setUpdatedAt(order.getUpdatedAt());
-        
+
         // Convert buyer information
         User buyer = order.getBuyer();
         if (buyer != null) {
@@ -421,7 +487,7 @@ public class OrderController {
             buyerDTO.setFullName(buyer.getFullName());
             dto.setBuyer(buyerDTO);
         }
-        
+
         // Convert order items
         List<OrderItemDTO> itemDTOs = new ArrayList<>();
         for (OrderItem item : order.getItems()) {
@@ -430,7 +496,7 @@ public class OrderController {
             itemDTO.setQuantity(item.getQuantity());
             itemDTO.setUnitPrice(item.getUnitPrice());
             itemDTO.setSubtotal(item.getSubtotal());
-            
+
             // Convert product to DTO
             Product product = item.getProduct();
             if (product != null) {
@@ -447,30 +513,31 @@ public class OrderController {
                 productDTO.setAverageRating(product.getAverageRating());
                 productDTO.setCreatedAt(product.getCreatedAt());
                 productDTO.setUpdatedAt(product.getUpdatedAt());
-                
+
                 // Set seller information
                 User seller = product.getSeller();
                 if (seller != null) {
                     productDTO.setSellerEmail(seller.getEmail());
-                    productDTO.setSellerName(seller.getFullName() != null ? seller.getFullName() : seller.getUsername());
+                    productDTO
+                            .setSellerName(seller.getFullName() != null ? seller.getFullName() : seller.getUsername());
                 }
-                
+
                 // Set category information
                 Category category = product.getCategory();
                 if (category != null) {
                     productDTO.setCategoryName(category.getCategoryName());
                 }
-                
+
                 itemDTO.setProduct(productDTO);
             }
-            
+
             itemDTOs.add(itemDTO);
         }
         dto.setItems(itemDTOs);
-        
+
         return dto;
     }
-    
+
     @PutMapping("/user/sales/{orderId}/mark-delivered")
     public ResponseEntity<?> markOrderAsDelivered(
             @RequestHeader("Authorization") String token,
@@ -479,38 +546,37 @@ public class OrderController {
         try {
             Integer userId = extractUserIdFromToken(token);
             User user = userService.getUserById(userId);
-            
+
             // Find the order
             Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
                     .orElseThrow(() -> new RuntimeException("Order not found"));
-            
+
             // Verify that the order contains products sold by the user
             boolean hasProductsFromSeller = order.getItems().stream()
                     .anyMatch(item -> item.getProduct().getSeller().getUserId().equals(userId));
-            
+
             if (!hasProductsFromSeller) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Unauthorized access to this order"));
             }
-            
+
             // Update order status to "Delivered"
             order.setOrderStatus("Delivered");
-            
+
             // Set delivery confirmation image if provided
             if (deliveryConfirmationImage != null && !deliveryConfirmationImage.isEmpty()) {
                 order.setDeliveryConfirmationImage(deliveryConfirmationImage);
             }
-            
+
             // Save the updated order
             order = orderRepository.save(order);
-            
+
             // Convert to DTO to avoid serialization issues
             OrderDTO orderDTO = convertToDTO(order);
-            
+
             return ResponseEntity.ok(Map.of(
-                "message", "Order marked as delivered successfully",
-                "order", orderDTO
-            ));
+                    "message", "Order marked as delivered successfully",
+                    "order", orderDTO));
         } catch (Exception e) {
             log.error("Error marking order as delivered", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
