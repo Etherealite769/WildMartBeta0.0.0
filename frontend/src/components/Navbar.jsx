@@ -57,7 +57,7 @@ const Navbar = () => {
         <div className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
           <Link to="/dashboard" className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}>Dashboard</Link>
           {isSeller && <Link to="/my-products" className={`nav-link ${isActive('/my-products') ? 'active' : ''}`}>My Products</Link>}
-          {isSeller && <Link to="/my-sales" className={`nav-link ${isActive('/my-sales') ? 'active' : ''}`}>My Sales</Link>}
+          
           <Link to="/my-orders" className={`nav-link ${isActive('/my-orders') ? 'active' : ''}`}>My Orders</Link>
           <Link to="/my-likes" className={`nav-link ${isActive('/my-likes') ? 'active' : ''}`}>Likes</Link>
           <Link to="/cart" className={`nav-link ${isActive('/cart') ? 'active' : ''}`}>

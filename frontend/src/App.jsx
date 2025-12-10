@@ -13,7 +13,7 @@ import MyProducts from './pages/MyProducts';
 import MyPurchases from './pages/MyPurchases';
 import MyLikes from './pages/MyLikes';
 import MyOrders from './pages/MyOrders';
-import MySales from './pages/MySales';
+
 import OrderDetails from './pages/OrderDetails';
 import SalesOrderDetails from './pages/SalesOrderDetails';
 import Cart from './pages/Cart';
@@ -107,10 +107,7 @@ function App() {
             path="/my-orders" 
             element={isAuthenticated ? <MyOrders /> : <Navigate to="/login" />} 
           />
-          <Route 
-            path="/my-sales" 
-            element={isAuthenticated ? <MySales /> : <Navigate to="/login" />} 
-          />
+          
           <Route 
             path="/sales-order-details/:orderId" 
             element={isAuthenticated ? <SalesOrderDetails /> : <Navigate to="/login" />} 
