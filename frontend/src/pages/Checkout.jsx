@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import '../styles/Checkout.css';
 
 const Checkout = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -47,9 +48,16 @@ const Checkout = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       console.log('Checkout - Cart response:', response.data);
-      const items = response.data.items || [];
+      let items = response.data.items || [];
       console.log('Checkout - Items array:', items);
       console.log('Checkout - Items length:', items.length);
+      
+      // Filter items based on selected items from cart if provided
+      const selectedItems = location.state?.selectedItems;
+      if (selectedItems && selectedItems.length > 0) {
+        items = items.filter(item => selectedItems.includes(item.id));
+        console.log('Checkout - Filtered items:', items);
+      }
       
       setCartItems(items);
       
@@ -233,6 +241,11 @@ const Checkout = () => {
           {/* Order Summary - Will be sticky/floating */}
           <div className="checkout-section order-summary-section">
             <h3>Order Summary</h3>
+            {location.state?.selectedItems && location.state.selectedItems.length > 0 && (
+              <div className="selected-items-info">
+                <p>Checking out {cartItems.length} selected item{cartItems.length !== 1 ? 's' : ''} from your cart</p>
+              </div>
+            )}
             <div className="order-items">
               {cartItems.map(item => {
                 const productName = item.product?.productName || item.product?.name || 'Product';
