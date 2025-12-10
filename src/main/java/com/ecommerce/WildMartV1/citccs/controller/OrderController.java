@@ -404,7 +404,6 @@ public class OrderController {
             response.put("orderStatus", order.getOrderStatus());
             response.put("paymentStatus", order.getPaymentStatus());
             response.put("shippingAddress", order.getShippingAddress());
-            response.put("paymentMethod", paymentMethod);
             response.put("message", "Order placed successfully");
 
             return ResponseEntity.ok(response);
@@ -536,6 +535,57 @@ public class OrderController {
         dto.setItems(itemDTOs);
 
         return dto;
+    }
+
+    @PutMapping("/user/orders/{orderId}/status")
+    public ResponseEntity<?> updateOrderStatus(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Integer orderId,
+            @RequestBody Map<String, String> statusUpdate) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            User user = userService.getUserById(userId);
+
+            // Find the order
+            Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+
+            // Verify that the order belongs to the user (buyer)
+            if (!order.getBuyer().getUserId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized access to this order"));
+            }
+
+            // Only allow status updates from "Pending" to "Cancelled"
+            String newStatus = statusUpdate.get("orderStatus");
+            if (!"Pending".equals(order.getOrderStatus())) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Cannot cancel order that is not in Pending status"));
+            }
+
+            if (!"Cancelled".equals(newStatus)) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid status update. Only cancellation is allowed."));
+            }
+
+            // Update order status
+            order.setOrderStatus(newStatus);
+            order.setUpdatedAt(LocalDateTime.now());
+
+            // Save the updated order
+            order = orderRepository.save(order);
+
+            // Convert to DTO to avoid serialization issues
+            OrderDTO orderDTO = convertToDTO(order);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Order status updated successfully",
+                    "order", orderDTO));
+        } catch (Exception e) {
+            log.error("Error updating order status", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to update order status: " + e.getMessage()));
+        }
     }
 
     @PutMapping("/user/sales/{orderId}/mark-delivered")

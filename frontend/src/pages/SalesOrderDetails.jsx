@@ -99,21 +99,6 @@ const SalesOrderDetails = () => {
       </div>
     );
   }
-
-  if (error || !order) {
-    return (
-      <div className="order-details-page">
-        <Navbar />
-        <div className="order-details-container">
-          <div className="error-message">{error || 'Order not found'}</div>
-          <button className="btn-back" onClick={() => navigate('/my-products')}>
-            Back to My Products
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // Calculate values for display
   const totalAmount = Number(order.totalAmount) || 0;
   const discountAmount = Number(order.discountAmount) || 0;
@@ -123,183 +108,241 @@ const SalesOrderDetails = () => {
   return (
     <div className="order-details-page">
       <Navbar />
-      
-      <div className="order-details-container">
-        <div className="order-details-header">
-          <button className="btn-back" onClick={() => navigate('/my-products')}>
-            ← Back to My Products
-          </button>
-        </div>
-
-        <div className="order-details-card-compact">
-          {/* Compact Order Summary */}
-          <div className="order-summary-compact">
-            <div className="summary-left">
-              <div className="summary-item">
-                <label>Order Number</label>
-                <p className="order-number">{order.orderNumber || `#${order.orderId}`}</p>
-              </div>
-              <div className="summary-item">
-                <label>Date</label>
-                <p>{new Date(order.orderDate).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}</p>
-              </div>
-            </div>
-            
-            <div className="summary-center">
-              <div className="summary-item">
-                <label>Status</label>
-                <span className={`status-badge ${order.orderStatus?.toLowerCase().replace(/\s+/g, '-')}`}>
-                  {order.orderStatus}
-                </span>
-              </div>
-              <div className="summary-item">
-                <label>Payment</label>
-                <span className={`payment-badge ${order.paymentStatus?.toLowerCase()}`}>
-                  {order.paymentStatus}
-                </span>
-              </div>
-            </div>
-            
-            <div className="summary-right">
-              <div className="summary-item">
-                <label>Total Amount</label>
-                <p className="total-amount">₱{totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-              </div>
-            </div>
+        <div className="sales-details-section">
+          {/* Header */}
+          <div className="sales-details-header">
+            <h2>Order #{order.orderNumber || order.orderId} Details</h2>
+            <button className="btn-close-details" onClick={() => navigate('/my-products')}>
+              Close
+            </button>
           </div>
-
-          {/* Action Button for Mark as Delivered */}
-          {order.orderStatus !== 'Delivered' && (
-            <div className="order-actions" style={{ 
-              marginBottom: '15px', 
-              textAlign: 'right' 
-            }}>
-              <button 
-                className="btn-primary"
-                onClick={handleMarkAsDelivered}
-                disabled={updatingStatus}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#800000',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: updatingStatus ? 'not-allowed' : 'pointer',
-                  opacity: updatingStatus ? 0.7 : 1
-                }}
-              >
-                {updatingStatus ? 'Updating...' : 'Mark as Delivered'}
-              </button>
-            </div>
-          )}
-
-          {/* Detailed Pricing Breakdown */}
-          <div className="pricing-breakdown">
-            <div className="summary-row">
-              <span>Subtotal:</span>
-              <span>₱{subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className="summary-row">
-              <span>Shipping (5%):</span>
-              <span>₱{shippingFee.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            {discountAmount > 0 && (
-              <div className="summary-row discount-row">
-                <span>Discount:</span>
-                <span>-₱{discountAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            )}
-            <div className="summary-row total-row">
-              <strong>Total:</strong>
-              <strong>₱{totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-            </div>
-          </div>
-
-          {/* Buyer Information */}
-          <div className="shipping-address-compact">
-            <label>Buyer:</label>
-            <p>{order.buyer?.fullName || order.buyer?.username || 'Unknown Buyer'}</p>
-          </div>
-
-          {/* Shipping Address */}
-          <div className="shipping-address-compact">
-            <label>Shipping Address:</label>
-            <p>{order.shippingAddress || 'No address provided'}</p>
-          </div>
-
-          {/* Compact Items Table */}
-          <div className="order-items-table">
-            <div className="table-header">
-              <div className="col-image">IMAGE</div>
-              <div className="col-product">PRODUCT</div>
-              <div className="col-seller">SELLER</div>
-              <div className="col-qty">QTY</div>
-              <div className="col-subtotal">AMOUNT</div>
-            </div>
-            <div className="table-body">
-              {order.items?.map(item => {
-                // Extract seller name with fallback logic
-                let sellerName = 'Unknown Seller';
-                const seller = item.product?.seller;
+          
+          {/* Content */}
+          <div className="sales-details-content">
+            {/* Left Column - Order Summary */}
+            <div className="sales-summary-section">
+              <div className="sales-summary-card">
+                <div className="summary-header">
+                  <h3>Order Information</h3>
+                </div>
                 
-                if (item.product?.sellerName) {
-                  sellerName = item.product.sellerName;
-                } else if (item.product?.fullName) {
-                  sellerName = item.product.fullName;
-                } else if (item.product?.full_name) {
-                  sellerName = item.product.full_name;
-                } else if (seller) {
-                  if (seller.firstName && seller.lastName) {
-                    sellerName = `${seller.firstName} ${seller.lastName}`;
-                  } else if (seller.fullName) {
-                    sellerName = seller.fullName;
-                  } else if (seller.full_name) {
-                    sellerName = seller.full_name;
-                  } else if (seller.firstName) {
-                    sellerName = seller.firstName;
-                  } else if (seller.lastName) {
-                    sellerName = seller.lastName;
-                  } else if (seller.name) {
-                    sellerName = seller.name;
-                  } else if (seller.username) {
-                    sellerName = seller.username;
-                  } else if (seller.email) {
-                    // Extract name from email (before @)
-                    sellerName = seller.email.split('@')[0];
-                  }
-                }
-                
-                return (
-                  <div key={item.id} className="table-row">
-                    <div className="col-image">
-                      <img 
-                        src={item.product?.imageUrl || '/placeholder.png'} 
-                        alt={item.product?.productName}
-                      />
-                    </div>
-                    <div className="col-product">{item.product?.productName}</div>
-                    <div className="col-seller">{sellerName}</div>
-                    <div className="col-qty">{item.quantity}</div>
-                    <div className="col-subtotal">₱{Number(item.subtotal).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                <div className="summary-details">
+                  <div className="detail-row">
+                    <span className="detail-label">Order Date:</span>
+                    <span className="detail-value">
+                      {new Date(order.orderDate).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
                   </div>
-                );
-              })}
+                  
+                  <div className="detail-row">
+                    <span className="detail-label">Status:</span>
+                    <span className={`status-badge ${order.orderStatus?.toLowerCase().replace(/\s+/g, '-')}`}>
+                      {order.orderStatus}
+                    </span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="detail-label">Payment Status:</span>
+                    <span className={`status-badge ${order.paymentStatus?.toLowerCase()}`}>
+                      {order.paymentStatus}
+                    </span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <span className="detail-label">Buyer:</span>
+                    <span className="detail-value">
+                      {order.buyer?.fullName || order.buyer?.username || 'Unknown Buyer'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="sales-summary-card">
+                <div className="summary-header">
+                  <h3>Shipping Information</h3>
+                </div>
+                
+                <div className="summary-details">
+                  <div className="detail-row">
+                    <span className="detail-label">Shipping Address:</span>
+                    <span className="detail-value">
+                      {order.shippingAddress || 'No address provided'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Right Column - Details */}
+            <div className="sales-info-section">
+              {/* Action Button for Mark as Delivered */}
+              {order.orderStatus !== 'Delivered' && (
+                <div className="sales-actions" style={{ 
+                  marginBottom: '15px', 
+                  textAlign: 'right' 
+                }}>
+                  <button 
+                    className="btn-primary"
+                    onClick={handleMarkAsDelivered}
+                    disabled={updatingStatus}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#800000',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: updatingStatus ? 'not-allowed' : 'pointer',
+                      opacity: updatingStatus ? 0.7 : 1
+                    }}
+                  >
+                    {updatingStatus ? 'Updating...' : 'Mark as Delivered'}
+                  </button>
+                </div>
+              )}
+              
+              {/* Price Section */}
+              <div className="sales-price-section">
+                <div className="price-label">Total Amount</div>
+                <div className="price-value">
+                  <span className="currency">₱</span>
+                  <span className="amount">
+                    {totalAmount.toLocaleString('en-PH', { 
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2 
+                    })}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Pricing Breakdown */}
+              <div className="sales-pricing-breakdown">
+                <h3>Pricing Breakdown</h3>
+                <div className="pricing-breakdown">
+                  <div className="summary-row">
+                    <span>Subtotal:</span>
+                    <span>
+                      ₱{subtotal.toLocaleString('en-PH', { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                      })}
+                    </span>
+                  </div>
+                  <div className="summary-row">
+                    <span>Shipping:</span>
+                    <span>
+                      ₱{shippingFee.toLocaleString('en-PH', { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                      })}
+                    </span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="summary-row discount-row">
+                      <span>Discount:</span>
+                      <span>
+                        -₱{discountAmount.toLocaleString('en-PH', { 
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: 2 
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  <div className="summary-row total-row">
+                    <strong>Total:</strong>
+                    <strong>
+                      ₱{totalAmount.toLocaleString('en-PH', { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                      })}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Order Items */}
+              <div className="sales-order-items">
+                <h3>Order Items ({order.items?.length || 0})</h3>
+                <div className="order-items-list">
+                  {order.items?.map(item => {
+                    // Extract seller name with fallback logic
+                    let sellerName = 'Unknown Seller';
+                    const seller = item.product?.seller;
+                    
+                    if (item.product?.sellerName) {
+                      sellerName = item.product.sellerName;
+                    } else if (item.product?.fullName) {
+                      sellerName = item.product.fullName;
+                    } else if (item.product?.full_name) {
+                      sellerName = item.product.full_name;
+                    } else if (seller) {
+                      if (seller.firstName && seller.lastName) {
+                        sellerName = `${seller.firstName} ${seller.lastName}`;
+                      } else if (seller.fullName) {
+                        sellerName = seller.fullName;
+                      } else if (seller.full_name) {
+                        sellerName = seller.full_name;
+                      } else if (seller.firstName) {
+                        sellerName = seller.firstName;
+                      } else if (seller.lastName) {
+                        sellerName = seller.lastName;
+                      } else if (seller.name) {
+                        sellerName = seller.name;
+                      } else if (seller.username) {
+                        sellerName = seller.username;
+                      } else if (seller.email) {
+                        // Extract name from email (before @)
+                        sellerName = seller.email.split('@')[0];
+                      }
+                    }
+                    
+                    return (
+                      <div key={item.id} className="order-item">
+                        <div className="item-image">
+                          <img 
+                            src={item.product?.imageUrl || '/placeholder.png'} 
+                            alt={item.product?.productName}
+                            onError={(e) => {
+                              e.target.src = '/placeholder.png';
+                            }}
+                          />
+                        </div>
+                        <div className="item-details">
+                          <h4>{item.product?.productName}</h4>
+                          <p>Seller: {sellerName}</p>
+                          <p>Quantity: {item.quantity}</p>
+                          <p>
+                            Price: ₱{Number(item.unitPrice).toLocaleString('en-PH', { 
+                              minimumFractionDigits: 2, 
+                              maximumFractionDigits: 2 
+                            })}
+                          </p>
+                        </div>
+                        <div className="item-price">
+                          ₱{Number(item.subtotal).toLocaleString('en-PH', { 
+                            minimumFractionDigits: 2, 
+                            maximumFractionDigits: 2 
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Delivery Confirmation Modal */}
+        <DeliveryConfirmationModal
+          isOpen={showDeliveryModal}
+          onConfirm={handleDeliveryConfirm}
+          onCancel={() => setShowDeliveryModal(false)}
+        />
       </div>
-      
-      {/* Delivery Confirmation Modal */}
-      <DeliveryConfirmationModal
-        isOpen={showDeliveryModal}
-        onConfirm={handleDeliveryConfirm}
-        onCancel={() => setShowDeliveryModal(false)}
-      />
-    </div>
   );
 };
 

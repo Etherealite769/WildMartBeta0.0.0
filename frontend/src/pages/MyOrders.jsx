@@ -10,7 +10,6 @@ const MyOrders = () => {
   const location = useLocation(); // Add this to access navigation state
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('all');
-  const [expandedOrder, setExpandedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -170,8 +169,10 @@ const MyOrders = () => {
         <div className="orders-list">
           {filteredOrders.length > 0 ? (
             filteredOrders.map(order => (
-              <div key={order.orderId} className="order-card-compact">
-                <div className="order-main" onClick={() => setExpandedOrder(expandedOrder === order.orderId ? null : order.orderId)}>
+              <div 
+                onClick={() => navigate(`/order-details/${order.orderId}`)}
+              >
+                <div className="order-main">
                   <div className="order-number-col">
                     <span className="order-number">{order.orderNumber || `#${order.orderId}`}</span>
                   </div>
@@ -192,39 +193,7 @@ const MyOrders = () => {
                       {order.orderStatus}
                     </span>
                   </div>
-                  <div className="order-actions-col">
-                    <button 
-                      className="btn-view-compact"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/order-details/${order.orderId}`);
-                      }}
-                    >
-                      View
-                    </button>
-                    <button className="btn-expand">
-                      {expandedOrder === order.orderId ? '▲' : '▼'}
-                    </button>
-                  </div>
                 </div>
-                
-                {expandedOrder === order.orderId && (
-                  <div className="order-items-expanded">
-                    {order.items?.map(item => (
-                      <div key={item.id} className="order-item-compact">
-                        <img src={item.product?.imageUrl || '/placeholder.png'} alt={item.product?.productName} />
-                        <div className="item-name">{item.product?.productName}</div>
-                        <div className="item-qty">Qty: {item.quantity}</div>
-                        <div className="item-price">₱{Number(item.unitPrice).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                      </div>
-                    ))}
-                    
-                    {/* Pricing Breakdown */}
-                    <div className="order-pricing-breakdown">
-                      {renderPricingBreakdown(order)}
-                    </div>
-                  </div>
-                )}
               </div>
             ))
           ) : (
@@ -241,37 +210,6 @@ const MyOrders = () => {
             </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-};
-
-const renderPricingBreakdown = (order) => {
-  // Calculate values for display
-  const totalAmount = Number(order.totalAmount) || 0;
-  const discountAmount = Number(order.discountAmount) || 0;
-  const shippingFee = Number(order.shippingFee) || (totalAmount * 0.05); // Default to 5% if not provided
-  const subtotal = totalAmount + discountAmount - shippingFee;
-  
-  return (
-    <div className="pricing-breakdown-compact">
-      <div className="summary-row">
-        <span>Subtotal:</span>
-        <span>₱{subtotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-      </div>
-      <div className="summary-row">
-        <span>Shipping (5%):</span>
-        <span>₱{shippingFee.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-      </div>
-      {discountAmount > 0 && (
-        <div className="summary-row discount-row">
-          <span>Discount:</span>
-          <span>-₱{discountAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
-      )}
-      <div className="summary-row total-row">
-        <strong>Total:</strong>
-        <strong>₱{totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
       </div>
     </div>
   );
