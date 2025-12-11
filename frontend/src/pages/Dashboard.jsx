@@ -13,7 +13,7 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categories, setCategories] = useState(['All', 'Electronics', 'Clothing', 'Books', 'Home', 'Accessories', 'Sports', 'Other']);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [activeFilter, setActiveFilter] = useState('Popular');
+  const [activeFilter, setActiveFilter] = useState('All');
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +57,7 @@ const Dashboard = () => {
   useEffect(() => {
     // Apply all filters when products or currentUser changes
     applyAllFilters();
-  }, [products, currentUser, searchTerm, selectedCategory]);
+  }, [products, currentUser, searchTerm, selectedCategory, activeFilter]);
 
   // Remove individual fetch functions - now using combined fetchData
 
@@ -65,34 +65,62 @@ const Dashboard = () => {
     // Filter out sold products and products belonging to the current user
     let filtered = products.filter(p => {
       // Filter out sold products
-      if (p.status === 'sold') return false;
+      if (p.status && p.status.toLowerCase() === 'sold') return false;
       
-      // Filter out products belonging to the current user (if we have user data)
-      if (currentUser && typeof currentUser === 'object' && 
-          (p.sellerEmail === currentUser.email || 
-           p.seller?.email === currentUser.email)) {
-        return false;
-      }
+      // Filter out products belonging to the current user
+      if (currentUser && p.sellerId === currentUser.userId) return false;
       
       return true;
     });
     
     // Apply category filter
     if (selectedCategory !== 'All') {
+      filtered = filtered.filter(p => p.categoryName === selectedCategory);
+    }
+    
+    // Apply search term filter
+    if (searchTerm) {
       filtered = filtered.filter(p => {
-        const productCategory = (p.categoryName || p.category?.categoryName || p.category || '').toLowerCase();
-        return productCategory === selectedCategory.toLowerCase();
+        const name = p.productName ? p.productName.toLowerCase() : '';
+        const desc = p.description ? p.description.toLowerCase() : '';
+        return name.includes(searchTerm.toLowerCase()) || 
+               desc.includes(searchTerm.toLowerCase());
       });
     }
     
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(p => {
-        const name = p.productName || p.name || '';
-        const desc = p.description || '';
-        return name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-               desc.toLowerCase().includes(searchTerm.toLowerCase());
-      });
+    // Apply specific filter logic
+    switch (activeFilter) {
+      case 'Popular':
+        // Products with 2 or more likes
+        filtered = filtered.filter(p => p.likeCount >= 2);
+        break;
+      case 'What\'s New':
+        // Products with "NEW" tag (assuming this means recently added)
+        // Filter products added within the last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        filtered = filtered.filter(p => {
+          const createdAt = new Date(p.createdAt);
+          return createdAt >= sevenDaysAgo;
+        });
+        break;
+      case 'Most Purchased':
+        // Since we don't have direct purchase count, we'll sort by a combination of factors
+        // that might indicate popularity: high like count and low quantity available
+        // This is a heuristic approach since we don't have direct purchase data
+        filtered.sort((a, b) => {
+          // Calculate a score based on likes and scarcity
+          const scoreA = (a.likeCount || 0) * 10 + (100 - (a.quantityAvailable || 0));
+          const scoreB = (b.likeCount || 0) * 10 + (100 - (b.quantityAvailable || 0));
+          return scoreB - scoreA; // Descending order
+        });
+        // Take top 20 most "purchased" products
+        filtered = filtered.slice(0, 20);
+        break;
+      case 'All':
+      default:
+        // No additional filtering for 'All'
+        break;
     }
     
     // Separate in-stock and out-of-stock products
@@ -152,7 +180,7 @@ const Dashboard = () => {
 
         <div className="filter-buttons-container">
           <div className="filter-buttons">
-            {['Popular', 'What\'s New', 'Hot Deals', 'Exclusive Deals', 'Picks For You', 'Most Purchased'].map(filter => (
+            {['All', 'Popular', 'What\'s New', 'Most Purchased'].map(filter => (
               <button
                 key={filter}
                 className={`filter-btn ${activeFilter === filter ? 'active' : ''}`}
