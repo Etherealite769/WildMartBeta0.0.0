@@ -415,6 +415,25 @@ const MyProducts = () => {
               
               <div className="modal-info">
                 <h2>{selectedProduct.productName}</h2>
+                {/* Debug: Log product data to see what's available */}
+                {console.log('Selected Product Data:', selectedProduct)}
+                {/* Add Rating Display */}
+                {(selectedProduct.averageRating || selectedProduct.reviewCount) ? (
+                  <div className="product-rating">
+                    <div className="stars">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span 
+                          key={star} 
+                          className={star <= (selectedProduct.averageRating || 0) ? 'star filled' : 'star'}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <span className="rating-value">{(selectedProduct.averageRating || 0).toFixed(1)}</span>
+                    <span className="review-count">({selectedProduct.reviewCount || 0} reviews)</span>
+                  </div>
+                ) : null}
                 <p className="modal-price">₱{selectedProduct.price ? parseFloat(selectedProduct.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}</p>
                 
                 <div className="modal-details">

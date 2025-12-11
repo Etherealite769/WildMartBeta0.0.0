@@ -504,10 +504,6 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
                   </div>
                   <div className="seller-details">
                     <h4>{sellerName}</h4>
-                    <div className="seller-rating">
-                      <span className="star filled">★</span>
-                      <span>{sellerRating.toFixed(1)}</span>
-                    </div>
                   </div>
                 </div>
                 
