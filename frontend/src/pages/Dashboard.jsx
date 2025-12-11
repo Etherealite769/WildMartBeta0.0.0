@@ -95,27 +95,30 @@ const Dashboard = () => {
         filtered = filtered.filter(p => p.likeCount >= 2);
         break;
       case 'What\'s New':
-        // Products with "NEW" tag (assuming this means recently added)
-        // Filter products added within the last 7 days
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        // Products with "NEW" badge (based on ProductCard implementation)
+        // A product is considered "new" if it was created today
         filtered = filtered.filter(p => {
+          if (!p.createdAt) return false;
           const createdAt = new Date(p.createdAt);
-          return createdAt >= sevenDaysAgo;
+          const today = new Date();
+          return createdAt.getDate() === today.getDate() &&
+                 createdAt.getMonth() === today.getMonth() &&
+                 createdAt.getFullYear() === today.getFullYear();
         });
         break;
       case 'Most Purchased':
-        // Since we don't have direct purchase count, we'll sort by a combination of factors
-        // that might indicate popularity: high like count and low quantity available
-        // This is a heuristic approach since we don't have direct purchase data
-        filtered.sort((a, b) => {
-          // Calculate a score based on likes and scarcity
-          const scoreA = (a.likeCount || 0) * 10 + (100 - (a.quantityAvailable || 0));
-          const scoreB = (b.likeCount || 0) * 10 + (100 - (b.quantityAvailable || 0));
-          return scoreB - scoreA; // Descending order
+        // Products purchased 2 or more times
+        // Since we don't have direct purchase count, we'll use a heuristic:
+        // Original stock - current stock = items sold
+        // We'll estimate that if the difference is >= 2, it's been purchased multiple times
+        filtered = filtered.filter(p => {
+          // This is a simplified approach since we don't have original stock data
+          // We'll assume that if quantityAvailable is significantly lower than a typical stock level,
+          // it indicates multiple purchases
+          const typicalStockLevel = 10; // Assumed typical stock level
+          const estimatedSold = typicalStockLevel - (p.quantityAvailable || 0);
+          return estimatedSold >= 2;
         });
-        // Take top 20 most "purchased" products
-        filtered = filtered.slice(0, 20);
         break;
       case 'All':
       default:
