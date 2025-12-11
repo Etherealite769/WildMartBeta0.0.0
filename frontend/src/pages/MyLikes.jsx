@@ -1,50 +1,89 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
+import ProductCardSkeleton from '../components/ProductCardSkeleton';
 import '../styles/MyLikes.css';
 
 const MyLikes = () => {
   const navigate = useNavigate();
   const [likedProducts, setLikedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalLikes, setTotalLikes] = useState(0);
 
-  useEffect(() => {
-    fetchLikedProducts();
-  }, []);
-
-  const fetchLikedProducts = async () => {
+  const fetchLikedProducts = useCallback(async (pageNum = 0, append = false) => {
     try {
-      setLoading(true);
-      const response = await axios.get('http://localhost:8080/api/user/likes', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8080/api/user/likes?page=${pageNum}&size=12`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('Liked products:', response.data);
-      // Handle both array and set responses
-      const products = Array.isArray(response.data) ? response.data : Array.from(response.data);
-      setLikedProducts(products);
+      
+      const { products, total, hasMore: more } = response.data;
+      
+      if (append) {
+        setLikedProducts(prev => [...prev, ...products]);
+      } else {
+        setLikedProducts(products);
+      }
+      
+      setTotalLikes(total);
+      setHasMore(more);
+      setPage(pageNum);
     } catch (error) {
       console.error('Error fetching liked products:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchLikedProducts();
+  }, [fetchLikedProducts]);
 
   const handleUnlike = (productId) => {
     // Remove product from the list immediately
     setLikedProducts(prevProducts => 
       prevProducts.filter(p => (p.productId || p.id) !== productId)
     );
+    setTotalLikes(prev => prev - 1);
   };
 
-  if (loading) {
+  // Load more products
+  const loadMore = () => {
+    if (!hasMore) return;
+    fetchLikedProducts(page + 1, true);
+  };
+
+  // Render skeleton loaders
+  const renderSkeletons = (count) => {
+    return Array.from({ length: count }).map((_, index) => (
+      <div key={`skeleton-${index}`} className="liked-product-card">
+        <ProductCardSkeleton />
+      </div>
+    ));
+  };
+
+  if (loading && likedProducts.length === 0) {
     return (
       <div className="my-likes-page">
         <Navbar />
         <div className="my-likes-container">
           <h2>My Likes</h2>
-          <div className="loading-likes">Loading your liked products...</div>
+          <p className="likes-count">Loading...</p>
+          <div className="liked-products-grid">
+            {renderSkeletons(8)}
+          </div>
         </div>
       </div>
     );
@@ -56,23 +95,39 @@ const MyLikes = () => {
       
       <div className="my-likes-container">
         <h2>My Likes</h2>
-        <p className="likes-count">{likedProducts.length} product{likedProducts.length !== 1 ? 's' : ''} liked</p>
+        <p className="likes-count">{totalLikes} product{totalLikes !== 1 ? 's' : ''} liked</p>
 
         <div className="liked-products-grid">
           {likedProducts.length > 0 ? (
-            likedProducts.map(product => {
-              const productId = product.productId || product.id;
-              return (
-                <div key={productId} className="liked-product-card">
-                  <ProductCard 
-                    product={product}
-                    onClick={() => navigate(`/product/${productId}`)}
-                    onUnlike={() => handleUnlike(productId)}
-                    initialLiked={true}
-                  />
+            <>
+              {likedProducts.map(product => {
+                const productId = product.productId || product.id;
+                return (
+                  <div key={productId} className="liked-product-card">
+                    <ProductCard 
+                      product={product}
+                      onClick={() => navigate(`/product/${productId}`)}
+                      onUnlike={() => handleUnlike(productId)}
+                      initialLiked={true}
+                    />
+                  </div>
+                );
+              })}
+              
+              {loadingMore && renderSkeletons(4)}
+              
+              {hasMore && (
+                <div className="load-more-container">
+                  <button 
+                    className="load-more-btn"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Loading...' : 'Load More'}
+                  </button>
                 </div>
-              );
-            })
+              )}
+            </>
           ) : (
             <div className="empty-state">
               <div className="empty-icon">

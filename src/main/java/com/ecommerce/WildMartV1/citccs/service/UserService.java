@@ -1,6 +1,7 @@
 package com.ecommerce.WildMartV1.citccs.service;
 
 import com.ecommerce.WildMartV1.citccs.dto.UserDTO;
+import com.ecommerce.WildMartV1.citccs.dto.LikedProductDTO;
 import com.ecommerce.WildMartV1.citccs.model.Like;
 import com.ecommerce.WildMartV1.citccs.model.Product;
 import com.ecommerce.WildMartV1.citccs.model.User;
@@ -38,7 +39,7 @@ public class UserService {
 
     public UserDTO updateUserProfile(Integer userId, UserDTO userDTO) {
         User user = getUserById(userId);
-
+        
         if (userDTO.getUsername() != null) {
             user.setUsername(userDTO.getUsername());
         }
@@ -90,6 +91,46 @@ public class UserService {
         return user.getLikes().stream()
                 .map(Like::getProduct)
                 .collect(Collectors.toCollection(HashSet::new));
+    }
+    
+    // New method to get paginated liked products with lightweight DTOs
+    public List<LikedProductDTO> getLikedProductsPaginated(Integer userId, int page, int size) {
+        User user = getUserById(userId);
+        
+        return user.getLikes().stream()
+                .skip((long) page * size)
+                .limit(size)
+                .map(like -> {
+                    Product product = like.getProduct();
+                    LikedProductDTO dto = new LikedProductDTO();
+                    dto.setId(product.getProductId());
+                    dto.setProductId(product.getProductId());
+                    dto.setProductName(product.getProductName());
+                    dto.setPrice(product.getPrice());
+                    dto.setQuantityAvailable(product.getQuantityAvailable());
+                    dto.setImageUrl(product.getImageUrl());
+                    
+                    if (product.getCategory() != null) {
+                        dto.setCategoryName(product.getCategory().getCategoryName());
+                    }
+                    
+                    if (product.getSeller() != null) {
+                        dto.setSellerName(
+                            product.getSeller().getFullName() != null ? 
+                            product.getSeller().getFullName() : 
+                            product.getSeller().getUsername()
+                        );
+                    }
+                    
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+    
+    // New method to get total count of liked products
+    public int getLikedProductsCount(Integer userId) {
+        User user = getUserById(userId);
+        return user.getLikes().size();
     }
 
     @Transactional

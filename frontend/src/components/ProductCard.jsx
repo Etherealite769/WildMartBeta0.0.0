@@ -7,7 +7,7 @@ import '../styles/ProductCard.css';
 
 const ProductCard = ({ product, onClick, showSeller = true, showEditButton = false, onUnlike, initialLiked = false }) => {
   const navigate = useNavigate();
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(initialLiked); // Use initialLiked directly
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
@@ -32,12 +32,9 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
   const isOutOfStock = stockQuantity === 0;
   const isLowStock = stockQuantity > 0 && stockQuantity <= 5;
 
-  // Check if product is already liked when component mounts
+  // Only check if liked if initialLiked is not provided (backward compatibility)
   useEffect(() => {
-    // If initialLiked is provided (e.g., from MyLikes page), use it
-    if (initialLiked) {
-      setIsLiked(true);
-    } else {
+    if (!initialLiked) {
       checkIfLiked();
     }
   }, [initialLiked, product.productId, product.id]);
@@ -80,11 +77,6 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
           headers: { Authorization: `Bearer ${token}` }
         });
       }
-      
-      // Refresh the like status after the operation
-      setTimeout(() => {
-        checkIfLiked();
-      }, 100);
       
       return true;
     } catch (error) {
