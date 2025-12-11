@@ -492,3 +492,31 @@
     justify-content: center;
   }
 }
+
+/* Message Buyer Button */
+.btn-message-buyer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #800000;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-message-buyer:hover {
+  background: #6a0000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.2);
+}
+
+.btn-message-buyer svg {
+  flex-shrink: 0;
+}

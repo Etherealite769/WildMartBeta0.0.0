@@ -11,13 +11,18 @@ const MessageModal = ({
   productId = null,
   productName = null,
   orderId = null,
-  orderNumber = null
+  orderNumber = null,
+  orderDetails = null,  // Full order details for seller view
+  isSeller = false      // Whether current user is the seller
 }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [conversationId, setConversationId] = useState(null);
+  const [showOrderPanel, setShowOrderPanel] = useState(false);
+  const [orderStatus, setOrderStatus] = useState(orderDetails?.orderStatus || '');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -33,6 +38,12 @@ const MessageModal = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (orderDetails) {
+      setOrderStatus(orderDetails.orderStatus);
+    }
+  }, [orderDetails]);
 
   const fetchOrCreateConversation = async () => {
     setLoading(true);
@@ -126,6 +137,42 @@ const MessageModal = ({
     }
   };
 
+  const handleUpdateOrderStatus = async (newStatus) => {
+    if (!orderId || updatingStatus) return;
+    
+    setUpdatingStatus(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://localhost:8080/api/user/sales/${orderId}/update-status`,
+        { orderStatus: newStatus },
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      setOrderStatus(newStatus);
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Failed to update order status: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return Number(amount || 0).toLocaleString('en-PH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const formatOrderDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -164,7 +211,7 @@ const MessageModal = ({
 
   return (
     <div className="message-modal-overlay" onClick={onClose}>
-      <div className="message-modal" onClick={(e) => e.stopPropagation()}>
+      <div className={`message-modal ${showOrderPanel ? 'with-order-panel' : ''}`} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="message-modal-header">
           <div className="message-recipient-info">
@@ -200,49 +247,155 @@ const MessageModal = ({
               )}
             </div>
           </div>
-          <button className="close-btn" onClick={onClose}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+          <div className="header-actions">
+            {isSeller && orderId && (
+              <button 
+                className="btn-toggle-order-panel"
+                onClick={() => setShowOrderPanel(!showOrderPanel)}
+                title="View Order Details"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+              </button>
+            )}
+            <button className="close-btn" onClick={onClose}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* Messages Area */}
-        <div className="message-modal-body">
-          {loading ? (
-            <div className="messages-loading">Loading messages...</div>
-          ) : messages.length === 0 ? (
-            <div className="no-messages">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <p>No messages yet</p>
-              <span>Start the conversation!</span>
-            </div>
-          ) : (
-            <div className="messages-list">
-              {messages.map((message, index) => {
-                const showDate = index === 0 || 
-                  formatDate(message.createdAt) !== formatDate(messages[index - 1].createdAt);
-                
-                return (
-                  <React.Fragment key={message.messageId}>
-                    {showDate && (
-                      <div className="message-date-divider">
-                        <span>{formatDate(message.createdAt)}</span>
-                      </div>
-                    )}
-                    <div className={`message-bubble ${message.isSender ? 'sent' : 'received'}`}>
-                      <div className="message-content">{message.content}</div>
-                      <div className="message-time">{formatTime(message.createdAt)}</div>
+        <div className="message-modal-content">
+          {/* Order Details Panel for Seller */}
+          {showOrderPanel && isSeller && orderDetails && (
+            <div className="order-details-panel">
+              <div className="order-panel-header">
+                <h4>Order Details</h4>
+                <button className="close-panel-btn" onClick={() => setShowOrderPanel(false)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="order-panel-body">
+                <div className="order-info-section">
+                  <div className="info-row">
+                    <span className="info-label">Order #:</span>
+                    <span className="info-value">{orderDetails.orderNumber || orderId}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Date:</span>
+                    <span className="info-value">{formatOrderDate(orderDetails.orderDate)}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Buyer:</span>
+                    <span className="info-value">{orderDetails.buyer?.fullName || orderDetails.buyer?.username}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Shipping:</span>
+                    <span className="info-value">{orderDetails.shippingAddress || 'N/A'}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Total:</span>
+                    <span className="info-value total">₱{formatCurrency(orderDetails.totalAmount)}</span>
+                  </div>
+                </div>
+
+                <div className="order-status-section">
+                  <div className="status-row">
+                    <span className="info-label">Current Status:</span>
+                    <span className={`status-badge ${orderStatus?.toLowerCase().replace(/\s+/g, '-')}`}>
+                      {orderStatus}
+                    </span>
+                  </div>
+                  
+                  <div className="status-update-section">
+                    <label>Update Status:</label>
+                    <div className="status-buttons">
+                      {['Pending', 'Processing', 'Shipped', 'Delivered'].map(status => (
+                        <button
+                          key={status}
+                          className={`status-btn ${orderStatus === status ? 'active' : ''}`}
+                          onClick={() => handleUpdateOrderStatus(status)}
+                          disabled={updatingStatus || orderStatus === status}
+                        >
+                          {status}
+                        </button>
+                      ))}
                     </div>
-                  </React.Fragment>
-                );
-              })}
-              <div ref={messagesEndRef} />
+                  </div>
+                </div>
+
+                {orderDetails.items && orderDetails.items.length > 0 && (
+                  <div className="order-items-section">
+                    <h5>Order Items</h5>
+                    <div className="order-items-list">
+                      {orderDetails.items.map((item, index) => (
+                        <div key={index} className="order-item-row">
+                          <img 
+                            src={item.product?.imageUrl || '/placeholder.png'} 
+                            alt={item.product?.productName}
+                            onError={(e) => { e.target.src = '/placeholder.png'; }}
+                          />
+                          <div className="item-info">
+                            <span className="item-name">{item.product?.productName}</span>
+                            <span className="item-qty">Qty: {item.quantity}</span>
+                          </div>
+                          <span className="item-price">₱{formatCurrency(item.subtotal)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
+
+          {/* Messages Area */}
+          <div className="message-modal-body">
+            {loading ? (
+              <div className="messages-loading">Loading messages...</div>
+            ) : messages.length === 0 ? (
+              <div className="no-messages">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <p>No messages yet</p>
+                <span>Start the conversation!</span>
+              </div>
+            ) : (
+              <div className="messages-list">
+                {messages.map((message, index) => {
+                  const showDate = index === 0 || 
+                    formatDate(message.createdAt) !== formatDate(messages[index - 1].createdAt);
+                  
+                  return (
+                    <React.Fragment key={message.messageId}>
+                      {showDate && (
+                        <div className="message-date-divider">
+                          <span>{formatDate(message.createdAt)}</span>
+                        </div>
+                      )}
+                      <div className={`message-bubble ${message.isSender ? 'sent' : 'received'}`}>
+                        <div className="message-content">{message.content}</div>
+                        <div className="message-time">{formatTime(message.createdAt)}</div>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Input Area */}

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import DeliveryConfirmationModal from '../components/DeliveryConfirmationModal';
+import MessageModal from '../components/MessageModal';
 import '../styles/OrderDetails.css';
 
 const SalesOrderDetails = () => {
@@ -13,6 +14,7 @@ const SalesOrderDetails = () => {
   const [error, setError] = useState(null);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -157,6 +159,18 @@ const SalesOrderDetails = () => {
                     <span className="detail-value">
                       {order.buyer?.fullName || order.buyer?.username || 'Unknown Buyer'}
                     </span>
+                  </div>
+                  
+                  <div className="detail-row">
+                    <button 
+                      className="btn-message-buyer"
+                      onClick={() => setShowMessageModal(true)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                      </svg>
+                      Message Buyer
+                    </button>
                   </div>
                 </div>
               </div>
@@ -342,6 +356,21 @@ const SalesOrderDetails = () => {
           onConfirm={handleDeliveryConfirm}
           onCancel={() => setShowDeliveryModal(false)}
         />
+        
+        {/* Message Modal for Seller to Buyer */}
+        {order && order.buyer && (
+          <MessageModal
+            isOpen={showMessageModal}
+            onClose={() => setShowMessageModal(false)}
+            receiverId={order.buyer.userId}
+            receiverName={order.buyer.fullName || order.buyer.username}
+            receiverImage={order.buyer.profileImage}
+            orderId={order.orderId}
+            orderNumber={order.orderNumber}
+            orderDetails={order}
+            isSeller={true}
+          />
+        )}
       </div>
   );
 };
