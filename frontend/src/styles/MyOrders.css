@@ -560,7 +560,7 @@
 
 .order-info h3 {
   font-size: 20px;
-  color: #800000; /* Maroon */
+  color: white;
   margin-bottom: 4px;
   transition: color 0.3s ease;
 }
@@ -667,12 +667,10 @@
   font-size: 18px;
   color: #800000; /* Maroon */
   font-weight: 700;
-  position: relative;
   padding-left: 20px;
 }
 
 .order-total::before {
-  content: 'Total: ';
   font-weight: 600;
   color: #333;
   margin-right: 5px;
