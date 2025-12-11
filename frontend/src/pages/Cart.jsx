@@ -51,7 +51,7 @@ const Cart = () => {
     }
   };
 
-  // Calculate total only for selected items
+  // Calculate total only for selected items (excluding out-of-stock)
   const calculateSelectedItemsTotal = () => {
     // If no items are selected, total should be zero
     if (selectedItems.size === 0) {
@@ -59,8 +59,10 @@ const Cart = () => {
       return;
     }
     
-    // Only calculate total for selected items
-    const selectedItemsArray = cartItems.filter(item => selectedItems.has(item.id));
+    // Only calculate total for selected in-stock items
+    const selectedItemsArray = cartItems.filter(item => 
+      selectedItems.has(item.id) && !isProductOutOfStock(item)
+    );
     const sum = selectedItemsArray.reduce((acc, item) => {
       const price = item.priceAtAddition || item.product?.price || 0;
       return acc + (Number(price) * item.quantity);
@@ -68,9 +70,10 @@ const Cart = () => {
     setSelectedItemsTotal(sum);
   };
 
-  // Calculate total for all items (not just selected)
+  // Calculate total for all in-stock items (not just selected)
   const calculateTotal = () => {
-    const sum = cartItems.reduce((acc, item) => {
+    const inStockItemsOnly = cartItems.filter(item => !isProductOutOfStock(item));
+    const sum = inStockItemsOnly.reduce((acc, item) => {
       const price = item.priceAtAddition || item.product?.price || 0;
       return acc + (Number(price) * item.quantity);
     }, 0);
@@ -159,16 +162,16 @@ const Cart = () => {
   };
 
   const selectAllItems = () => {
-    console.log('Cart - Select all clicked, current selection size:', selectedItems.size, 'Total items:', cartItems.length);
-    if (selectedItems.size === cartItems.length && cartItems.length > 0) {
-      // If all items are selected, deselect all
+    console.log('Cart - Select all clicked, current selection size:', selectedItems.size, 'Total in-stock items:', inStockItems.length);
+    if (selectedItems.size === inStockItems.length && inStockItems.length > 0) {
+      // If all in-stock items are selected, deselect all
       setSelectedItems(new Set());
       console.log('Cart - All items deselected');
     } else {
-      // Otherwise, select all items
-      const allItemIds = cartItems.map(item => item.id);
-      console.log('Cart - Selecting all item IDs:', allItemIds);
-      setSelectedItems(new Set(allItemIds));
+      // Otherwise, select all in-stock items only
+      const allInStockItemIds = inStockItems.map(item => item.id);
+      console.log('Cart - Selecting all in-stock item IDs:', allInStockItemIds);
+      setSelectedItems(new Set(allInStockItemIds));
     }
   };
 
@@ -203,14 +206,20 @@ const Cart = () => {
   };
 
   const handleCheckout = () => {
-    // Check if we have selected items
-    const selectedItemsArray = selectedItems.size > 0 
-      ? Array.from(selectedItems) 
-      : cartItems.map(item => item.id);
+    // Filter out out-of-stock items from selection
+    const inStockSelectedItems = Array.from(selectedItems).filter(itemId => {
+      const item = cartItems.find(cartItem => cartItem.id === itemId);
+      return item && !isProductOutOfStock(item);
+    });
+    
+    // Check if we have selected items after filtering
+    const selectedItemsArray = inStockSelectedItems.length > 0 
+      ? inStockSelectedItems 
+      : inStockItems.map(item => item.id); // If no items are selected, use all in-stock items
       
     // If no items are selected, we can't checkout
     if (selectedItemsArray.length === 0) {
-      toast.error('Please select at least one item to checkout');
+      toast.error('Please select at least one available item to checkout');
       return;
     }
     
@@ -250,11 +259,15 @@ const Cart = () => {
     });
   };
 
-  // Check if multiple sellers are selected
+  // Check if multiple sellers are selected (only considering in-stock items)
   const hasMultipleSellersSelected = () => {
     if (selectedItems.size === 0) return false;
     
-    const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
+    // Filter to only include in-stock items
+    const selectedCartItems = cartItems.filter(item => 
+      selectedItems.has(item.id) && !isProductOutOfStock(item)
+    );
+    
     const sellers = new Set();
     
     selectedCartItems.forEach(item => {
@@ -326,19 +339,21 @@ const Cart = () => {
     return Array.from(sellers.values());
   };
 
-  // Select all items from a specific seller
+  // Select all items from a specific seller (only in-stock items)
   const selectAllFromSeller = (sellerItems) => {
-    const itemIds = sellerItems.map(item => item.id);
+    // Filter to only include in-stock items from this seller
+    const inStockSellerItems = sellerItems.filter(item => !isProductOutOfStock(item));
+    const itemIds = inStockSellerItems.map(item => item.id);
     const newSelectedItems = new Set(selectedItems);
     
-    // Check if all items from this seller are already selected
+    // Check if all in-stock items from this seller are already selected
     const allSelected = itemIds.every(id => selectedItems.has(id));
     
     if (allSelected) {
       // Deselect all items from this seller
       itemIds.forEach(id => newSelectedItems.delete(id));
     } else {
-      // Select all items from this seller
+      // Select all in-stock items from this seller
       itemIds.forEach(id => newSelectedItems.add(id));
     }
     
@@ -347,6 +362,22 @@ const Cart = () => {
 
   // Group cart items by seller for display
   const groupedCartItems = groupItemsBySeller(cartItems);
+  
+  // Function to check if a product is out of stock
+  const isProductOutOfStock = (item) => {
+    const quantityAvailable = item.product?.quantityAvailable || 0;
+    return quantityAvailable === 0;
+  };
+
+  // Separate in-stock and out-of-stock items
+  const inStockItems = cartItems.filter(item => !isProductOutOfStock(item));
+  const outOfStockItems = cartItems.filter(item => isProductOutOfStock(item));
+  
+  // Group in-stock items by seller
+  const groupedInStockItems = groupItemsBySeller(inStockItems);
+  
+  // Group out-of-stock items by seller
+  const groupedOutOfStockItems = groupItemsBySeller(outOfStockItems);
 
   return (
     <div className="cart-page">
@@ -364,7 +395,7 @@ const Cart = () => {
                   <label className="select-all-checkbox">
                     <input
                       type="checkbox"
-                      checked={selectedItems.size === cartItems.length && cartItems.length > 0}
+                      checked={selectedItems.size === inStockItems.length && inStockItems.length > 0}
                       onChange={selectAllItems}
                     />
                     Select All
@@ -381,8 +412,9 @@ const Cart = () => {
               </div>
               
               <div className="cart-items">
-                {groupedCartItems.map((sellerGroup, sellerIndex) => (
-                  <div key={sellerGroup.sellerInfo?.userId || sellerIndex} className="seller-group">
+                {/* In Stock Items Section */}
+                {groupedInStockItems.map((sellerGroup, sellerIndex) => (
+                  <div key={`instock-${sellerGroup.sellerInfo?.userId || sellerIndex}`} className="seller-group">
                     <div className="seller-header">
                       <h3>Seller: {sellerGroup.sellerName}</h3>
                       <button 
@@ -450,6 +482,88 @@ const Cart = () => {
                     })}
                   </div>
                 ))}
+                
+                {/* Out of Stock Items Section */}
+                {outOfStockItems.length > 0 && (
+                  <div className="out-of-stock-section">
+                    <div className="section-header">
+                      <h3>Out of Stock Items</h3>
+                      <p>These items are no longer available and cannot be purchased</p>
+                    </div>
+                    {groupedOutOfStockItems.map((sellerGroup, sellerIndex) => (
+                      <div key={`outofstock-${sellerGroup.sellerInfo?.userId || sellerIndex}`} className="seller-group out-of-stock-group">
+                        <div className="seller-header">
+                          <h3>Seller: {sellerGroup.sellerName}</h3>
+                        </div>
+                        {sellerGroup.items.map(item => {
+                          const productName = item.product?.productName || item.product?.name || 'Product';
+                          const productImage = item.product?.imageUrl || '/placeholder.png';
+                          const itemPrice = Number(item.priceAtAddition || item.product?.price || 0);
+                          const itemTotal = itemPrice * item.quantity;
+                          const isSelected = selectedItems.has(item.id);
+                          
+                          return (
+                            <div key={item.id} className={`cart-item ${isSelected ? 'selected' : ''} out-of-stock`}>
+                              <div className="item-selection">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleSelectItem(item.id)}
+                                  disabled={true}
+                                />
+                              </div>
+                              <div className="item-image">
+                                <img 
+                                  src={productImage} 
+                                  alt={productName}
+                                  onError={(e) => {
+                                    e.target.src = '/placeholder.png';
+                                    e.target.onerror = null;
+                                  }}
+                                />
+                              </div>
+                              <div className="item-details">
+                                <h3>{productName}</h3>
+                                <p className="unit-price">Unit Price: ₱{itemPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                              </div>
+                              <div className="item-quantity-controls">
+                                <button 
+                                  className="quantity-btn"
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  disabled={true}
+                                >
+                                  -
+                                </button>
+                                <span className="quantity-display">{item.quantity}</span>
+                                <button 
+                                  className="quantity-btn"
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  disabled={true}
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <div className="cart-item-actions">
+                                <div className="item-total">
+                                  <p>₱{itemTotal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+                                </div>
+                                <button 
+                                  className="btn-remove-out-of-stock"
+                                  onClick={() => {
+                                    setItemToRemove(item.id);
+                                    setShowRemoveModal(true);
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
