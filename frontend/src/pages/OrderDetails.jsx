@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import ConfirmModal from '../components/ConfirmModal';
+import MessageModal from '../components/MessageModal';
 import '../styles/OrderDetails.css';
 
 const OrderDetails = () => {
@@ -13,6 +14,8 @@ const OrderDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedSeller, setSelectedSeller] = useState(null);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -275,6 +278,27 @@ const OrderDetails = () => {
                               maximumFractionDigits: 2 
                             })}
                           </p>
+                          {/* Message Seller Button */}
+                          {item.product?.seller?.userId && (
+                            <button 
+                              className="btn-message-seller-small"
+                              onClick={() => {
+                                setSelectedSeller({
+                                  id: item.product.seller.userId,
+                                  name: sellerName,
+                                  image: item.product.seller.profileImage,
+                                  productId: item.product.productId,
+                                  productName: item.product.productName
+                                });
+                                setShowMessageModal(true);
+                              }}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                              </svg>
+                              Message Seller
+                            </button>
+                          )}
                         </div>
                         <div className="item-price">
                           ₱{Number(item.subtotal).toLocaleString('en-PH', { 
@@ -314,6 +338,24 @@ const OrderDetails = () => {
         confirmText="Yes, Cancel Order"
         cancelText="No, Keep Order"
       />
+      
+      {/* Message Seller Modal */}
+      {selectedSeller && (
+        <MessageModal
+          isOpen={showMessageModal}
+          onClose={() => {
+            setShowMessageModal(false);
+            setSelectedSeller(null);
+          }}
+          receiverId={selectedSeller.id}
+          receiverName={selectedSeller.name}
+          receiverImage={selectedSeller.image}
+          productId={selectedSeller.productId}
+          productName={selectedSeller.productName}
+          orderId={parseInt(orderId)}
+          orderNumber={order?.orderNumber || order?.orderId}
+        />
+      )}
     </div>
   );
 };

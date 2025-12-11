@@ -274,6 +274,33 @@
   font-size: 16px;
 }
 
+/* Message Seller Button in Order Items */
+.btn-message-seller-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #800000 0%, #a01010 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
+  transition: all 0.2s;
+}
+
+.btn-message-seller-small svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-message-seller-small:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(128, 0, 0, 0.25);
+}
+
 .sales-actions {
   padding: 20px;
   border-top: 1px solid #f0f0f0;

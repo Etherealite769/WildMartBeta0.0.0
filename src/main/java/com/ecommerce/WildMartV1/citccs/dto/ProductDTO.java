@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @AllArgsConstructor
@@ -25,4 +26,5 @@ public class ProductDTO {
     private String sellerEmail;
     private String sellerName;
     private String categoryName;
+    private Map<String, Object> seller; // Nested seller object with userId, fullName, etc.
 }

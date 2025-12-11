@@ -647,6 +647,33 @@
   background: #e0e0e0;
 }
 
+/* Message Seller Button */
+.btn-message-seller {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #800000 0%, #a01010 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.btn-message-seller svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-message-seller:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+}
+
 /* Owner Actions */
 .product-owner-actions {
   display: flex;

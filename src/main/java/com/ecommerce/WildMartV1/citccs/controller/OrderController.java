@@ -525,8 +525,16 @@ public class OrderController {
                 User seller = product.getSeller();
                 if (seller != null) {
                     productDTO.setSellerEmail(seller.getEmail());
-                    productDTO
-                            .setSellerName(seller.getFullName() != null ? seller.getFullName() : seller.getUsername());
+                    productDTO.setSellerName(seller.getFullName() != null ? seller.getFullName() : seller.getUsername());
+                    
+                    // Add nested seller object for messaging
+                    Map<String, Object> sellerMap = new HashMap<>();
+                    sellerMap.put("userId", seller.getUserId());
+                    sellerMap.put("username", seller.getUsername());
+                    sellerMap.put("fullName", seller.getFullName());
+                    sellerMap.put("email", seller.getEmail());
+                    sellerMap.put("profileImage", seller.getProfileImage());
+                    productDTO.setSeller(sellerMap);
                 }
 
                 // Set category information

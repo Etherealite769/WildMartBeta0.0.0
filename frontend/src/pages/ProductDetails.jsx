@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
 import ConfirmModal from '../components/ConfirmModal';
+import MessageModal from '../components/MessageModal';
 import '../styles/ProductDetails.css';
 
 const ProductDetails = () => {
@@ -19,6 +20,7 @@ const ProductDetails = () => {
   const [localLikeCount, setLocalLikeCount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState({
     title: '',
     message: '',
@@ -433,6 +435,18 @@ const ProductDetails = () => {
                   <span>{sellerRating.toFixed(1)}</span>
                 </div>
               </div>
+              {/* Message Seller Button - only show if not the owner */}
+              {product.seller?.userId !== currentUser?.userId && currentUser && (
+                <button 
+                  className="btn-message-seller"
+                  onClick={() => setShowMessageModal(true)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  Message
+                </button>
+              )}
             </div>
             
             {/* Owner Actions */}
@@ -485,6 +499,17 @@ const ProductDetails = () => {
         confirmText="Add to Cart"
         cancelText="Cancel"
         type="default"
+      />
+      
+      {/* Message Seller Modal */}
+      <MessageModal
+        isOpen={showMessageModal}
+        onClose={() => setShowMessageModal(false)}
+        receiverId={product?.seller?.userId}
+        receiverName={sellerName}
+        receiverImage={sellerProfileImage}
+        productId={product?.productId}
+        productName={productName}
       />
     </div>
   );
