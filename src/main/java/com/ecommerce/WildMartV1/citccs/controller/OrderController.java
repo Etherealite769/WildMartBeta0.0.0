@@ -492,6 +492,8 @@ public class OrderController {
             buyerDTO.setUsername(buyer.getUsername());
             buyerDTO.setEmail(buyer.getEmail());
             buyerDTO.setFullName(buyer.getFullName());
+            buyerDTO.setProfileImage(buyer.getProfileImage());
+            buyerDTO.setShippingAddress(buyer.getShippingAddress());
             dto.setBuyer(buyerDTO);
         }
 
@@ -673,6 +675,87 @@ public class OrderController {
             log.error("Error marking order as delivered", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to mark order as delivered: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/user/sales/{orderId}/update-status")
+    public ResponseEntity<?> updateSaleStatus(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Integer orderId,
+            @RequestBody Map<String, String> statusUpdate) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            User user = userService.getUserById(userId);
+
+            // Find the order
+            Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+
+            // Verify that the order contains products sold by the user
+            boolean hasProductsFromSeller = order.getItems().stream()
+                    .anyMatch(item -> item.getProduct().getSeller().getUserId().equals(userId));
+
+            if (!hasProductsFromSeller) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized access to this order"));
+            }
+
+            String newStatus = statusUpdate.get("orderStatus");
+            
+            // Validate status transitions
+            String currentStatus = order.getOrderStatus();
+            List<String> validStatuses = List.of("Pending", "Processing", "Shipped", "Delivered", "Cancelled");
+            
+            if (!validStatuses.contains(newStatus)) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid status: " + newStatus));
+            }
+
+            // If setting to Delivered, also handle product status
+            if ("Delivered".equals(newStatus)) {
+                for (OrderItem item : order.getItems()) {
+                    Product product = item.getProduct();
+                    if (product.getQuantityAvailable() <= 0) {
+                        product.setStatus("sold");
+                        productRepository.save(product);
+                        log.info("Product {} is sold out after delivery, status changed to 'sold'", product.getProductId());
+                    }
+                }
+            }
+            
+            // If cancelling, restore stock
+            if ("Cancelled".equals(newStatus) && !"Cancelled".equals(currentStatus)) {
+                for (OrderItem item : order.getItems()) {
+                    Product product = item.getProduct();
+                    int restoredQuantity = product.getQuantityAvailable() + item.getQuantity();
+                    product.setQuantityAvailable(restoredQuantity);
+                    
+                    if (restoredQuantity > 0 && "sold".equalsIgnoreCase(product.getStatus())) {
+                        product.setStatus("active");
+                        log.info("Product {} stock restored, status changed to 'active'", product.getProductId());
+                    }
+                    
+                    productRepository.save(product);
+                }
+            }
+
+            // Update order status
+            order.setOrderStatus(newStatus);
+            order.setUpdatedAt(LocalDateTime.now());
+
+            // Save the updated order
+            order = orderRepository.save(order);
+
+            // Convert to DTO to avoid serialization issues
+            OrderDTO orderDTO = convertToDTO(order);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Order status updated to " + newStatus,
+                    "order", orderDTO));
+        } catch (Exception e) {
+            log.error("Error updating sale status", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to update order status: " + e.getMessage()));
         }
     }
 }
