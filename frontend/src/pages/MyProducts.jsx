@@ -6,8 +6,9 @@ import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
 import ConfirmModal from '../components/ConfirmModal';
 import MessageModal from '../components/MessageModal';
+import RedesignedOrderDetailsModal from '../components/RedesignedOrderDetailsModal';
 import '../styles/MyProducts.css';
-import '../styles/OrderDetails.css';
+
 
 const MyProducts = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const MyProducts = () => {
   const [filter, setFilter] = useState('all');
   const [salesFilter, setSalesFilter] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [selectedSale, setSelectedSale] = useState(null);
+  const [selectedSaleId, setSelectedSaleId] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [messageBuyer, setMessageBuyer] = useState(null);
@@ -381,7 +382,7 @@ const MyProducts = () => {
                         </button>
                         <button 
                           className="btn-view-details"
-                          onClick={() => navigate(`/sales-order-details/${sale.orderId}`)}
+                          onClick={() => setSelectedSaleId(sale.orderId)}
                         >
                           View Details
                         </button>
@@ -456,219 +457,13 @@ const MyProducts = () => {
         </div>
       )}
       
-      {/* Sales Order Details Modal - New Implementation */}
-      {selectedSale && (
-        <div className="modal-overlay-blur" onClick={() => setSelectedSale(null)}>
-          <div className="sales-details-section" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="sales-details-header">
-              <h2>Order #{selectedSale.orderNumber || selectedSale.orderId} Details</h2>
-              <button className="btn-close-details" onClick={() => setSelectedSale(null)}>
-                Close
-              </button>
-            </div>
-            
-            {/* Content */}
-            <div className="sales-details-content">
-              {/* Left Column - Order Summary */}
-              <div className="sales-summary-section">
-                <div className="sales-summary-card">
-                  <div className="summary-header">
-                    <h3>Order Information</h3>
-                  </div>
-                  
-                  <div className="summary-details">
-                    <div className="detail-row">
-                      <span className="detail-label">Order Date:</span>
-                      <span className="detail-value">
-                        {new Date(selectedSale.orderDate).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </span>
-                    </div>
-                    
-                    <div className="detail-row">
-                      <span className="detail-label">Status:</span>
-                      <span className={`status-badge ${selectedSale.orderStatus?.toLowerCase().replace(/\s+/g, '-')}`}>
-                        {selectedSale.orderStatus}
-                      </span>
-                    </div>
-                    
-                    <div className="detail-row">
-                      <span className="detail-label">Payment Status:</span>
-                      <span className={`status-badge ${selectedSale.paymentStatus?.toLowerCase()}`}>
-                        {selectedSale.paymentStatus}
-                      </span>
-                    </div>
-                    
-                    <div className="detail-row">
-                      <span className="detail-label">Buyer:</span>
-                      <span className="detail-value">
-                        {selectedSale.buyer?.fullName || selectedSale.buyer?.username || 'Unknown Buyer'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="sales-summary-card">
-                  <div className="summary-header">
-                    <h3>Shipping Information</h3>
-                  </div>
-                  
-                  <div className="summary-details">
-                    <div className="detail-row">
-                      <span className="detail-label">Shipping Address:</span>
-                      <span className="detail-value">
-                        {selectedSale.shippingAddress || 'No address provided'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Right Column - Details */}
-              <div className="sales-info-section">
-                {/* Price Section */}
-                <div className="sales-price-section">
-                  <div className="price-label">Total Amount</div>
-                  <div className="price-value">
-                    <span className="currency">₱</span>
-                    <span className="amount">
-                      {Number(selectedSale.totalAmount || 0).toLocaleString('en-PH', { 
-                        minimumFractionDigits: 2, 
-                        maximumFractionDigits: 2 
-                      })}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Pricing Breakdown */}
-                <div className="sales-pricing-breakdown">
-                  <h3>Pricing Breakdown</h3>
-                  <div className="pricing-breakdown">
-                    {(() => {
-                      const { totalAmount, discountAmount, shippingFee, subtotal } = calculateSaleValues(selectedSale);
-                      return (
-                        <>
-                          <div className="summary-row">
-                            <span>Subtotal:</span>
-                            <span>
-                              ₱{subtotal.toLocaleString('en-PH', { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
-                              })}
-                            </span>
-                          </div>
-                          <div className="summary-row">
-                            <span>Shipping:</span>
-                            <span>
-                              ₱{shippingFee.toLocaleString('en-PH', { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
-                              })}
-                            </span>
-                          </div>
-                          {discountAmount > 0 && (
-                            <div className="summary-row discount-row">
-                              <span>Discount:</span>
-                              <span>
-                                -₱{discountAmount.toLocaleString('en-PH', { 
-                                  minimumFractionDigits: 2, 
-                                  maximumFractionDigits: 2 
-                                })}
-                              </span>
-                            </div>
-                          )}
-                          <div className="summary-row total-row">
-                            <strong>Total:</strong>
-                            <strong>
-                              ₱{totalAmount.toLocaleString('en-PH', { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
-                              })}
-                            </strong>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-                
-                {/* Order Items */}
-                <div className="sales-order-items">
-                  <h3>Order Items ({selectedSale.items?.length || 0})</h3>
-                  <div className="order-items-list">
-                    {selectedSale.items?.map(item => {
-                      // Extract seller name with fallback logic
-                      let sellerName = 'Unknown Seller';
-                      const seller = item.product?.seller;
-                      
-                      if (item.product?.sellerName) {
-                        sellerName = item.product.sellerName;
-                      } else if (item.product?.fullName) {
-                        sellerName = item.product.fullName;
-                      } else if (item.product?.full_name) {
-                        sellerName = item.product.full_name;
-                      } else if (seller) {
-                        if (seller.firstName && seller.lastName) {
-                          sellerName = `${seller.firstName} ${seller.lastName}`;
-                        } else if (seller.fullName) {
-                          sellerName = seller.fullName;
-                        } else if (seller.full_name) {
-                          sellerName = seller.full_name;
-                        } else if (seller.firstName) {
-                          sellerName = seller.firstName;
-                        } else if (seller.lastName) {
-                          sellerName = seller.lastName;
-                        } else if (seller.name) {
-                          sellerName = seller.name;
-                        } else if (seller.username) {
-                          sellerName = seller.username;
-                        } else if (seller.email) {
-                          // Extract name from email (before @)
-                          sellerName = seller.email.split('@')[0];
-                        }
-                      }
-                      
-                      return (
-                        <div key={item.id} className="order-item">
-                          <div className="item-image">
-                            <img 
-                              src={item.product?.imageUrl || '/placeholder.png'} 
-                              alt={item.product?.productName}
-                              onError={(e) => {
-                                e.target.src = '/placeholder.png';
-                              }}
-                            />
-                          </div>
-                          <div className="item-details">
-                            <h4>{item.product?.productName}</h4>
-                            <p>Seller: {sellerName}</p>
-                            <p>Quantity: {item.quantity}</p>
-                            <p>
-                              Price: ₱{Number(item.unitPrice).toLocaleString('en-PH', { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
-                              })}
-                            </p>
-                          </div>
-                          <div className="item-price">
-                            ₱{Number(item.subtotal).toLocaleString('en-PH', { 
-                              minimumFractionDigits: 2, 
-                              maximumFractionDigits: 2 
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Redesigned Sales Order Details Modal */}
+      {selectedSaleId && (
+        <RedesignedOrderDetailsModal 
+          orderId={selectedSaleId}
+          onClose={() => setSelectedSaleId(null)}
+          isSeller={true}
+        />
       )}
       
       <ConfirmModal

@@ -3,7 +3,9 @@ import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Navbar from '../components/Navbar';
+import RedesignedOrderDetailsModal from '../components/RedesignedOrderDetailsModal';
 import '../styles/MyOrders.css';
+
 
 const MyOrders = () => {
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ const MyOrders = () => {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
 
   useEffect(() => {
     // Check for order success message from checkout
@@ -170,7 +173,7 @@ const MyOrders = () => {
           {filteredOrders.length > 0 ? (
             filteredOrders.map(order => (
               <div 
-                onClick={() => navigate(`/order-details/${order.orderId}`)}
+                onClick={() => setSelectedOrderId(order.orderId)}
               >
                 <div className="order-main">
                   <div className="order-number-col">
@@ -211,6 +214,14 @@ const MyOrders = () => {
           )}
         </div>
       </div>
+      
+      {/* Redesigned Order Details Modal */}
+      {selectedOrderId && (
+        <RedesignedOrderDetailsModal 
+          orderId={selectedOrderId}
+          onClose={() => setSelectedOrderId(null)}
+        />
+      )}
     </div>
   );
 };

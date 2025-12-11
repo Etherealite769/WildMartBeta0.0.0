@@ -351,77 +351,7 @@
   }
 }
 
-/* Sales Details Modal Styles - Matching ProductDetailsModal */
-.modal-overlay-blur {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  overflow-y: auto;
-  animation: fadeInBlur 0.3s ease-out;
-}
 
-@keyframes fadeInBlur {
-  from {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-    -webkit-backdrop-filter: blur(0px);
-  }
-  to {
-    opacity: 1;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.modal-overlay-blur .modal-close-btn {
-  position: fixed;
-  top: 25px;
-  right: 25px;
-  width: 52px;
-  height: 52px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
-  border: 2px solid rgba(128, 0, 0, 0.1);
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1002;
-  transition: all 0.3s ease;
-}
-
-.modal-overlay-blur .modal-close-btn:hover {
-  transform: rotate(15deg) scale(1.1);
-  border-color: #800000;
-  box-shadow: 0 4px 12px rgba(128, 0, 0, 0.2);
-}
-
-.modal-overlay-blur .modal-close-btn svg {
-  width: 24px;
-  height: 24px;
-  color: #800000;
-}
 
 .product-details-modal {
   background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
