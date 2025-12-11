@@ -419,12 +419,6 @@ const MyProducts = () => {
                 
                 <div className="modal-details">
                   <div className="detail-row">
-                    <span className="detail-label">Status:</span>
-                    <span className={`product-status ${getStatusClass(selectedProduct.status)}`}>
-                      {selectedProduct.status ? selectedProduct.status.charAt(0).toUpperCase() + selectedProduct.status.slice(1) : 'Draft'}
-                    </span>
-                  </div>
-                  <div className="detail-row">
                     <span className="detail-label">Quantity Available:</span>
                     <span className="detail-value">{selectedProduct.quantityAvailable || 0}</span>
                   </div>
