@@ -43,14 +43,22 @@ const AccountInformation = () => {
   // Effect to sync profileImage state with accountData when accountData changes
   useEffect(() => {
     if (accountData.profileImage && accountData.profileImage !== profileImage) {
-      setProfileImage(accountData.profileImage);
+      // Add timestamp to prevent caching issues
+      const imageUrlWithTimestamp = accountData.profileImage.includes('?') ? 
+        accountData.profileImage : 
+        `${accountData.profileImage}?t=${Date.now()}`;
+      setProfileImage(imageUrlWithTimestamp);
     }
   }, [accountData.profileImage, profileImage]);
   
   // Effect to ensure profileImage state is updated when activeTab changes
   useEffect(() => {
     if (accountData.profileImage && accountData.profileImage !== profileImage) {
-      setProfileImage(accountData.profileImage);
+      // Add timestamp to prevent caching issues
+      const imageUrlWithTimestamp = accountData.profileImage.includes('?') ? 
+        accountData.profileImage : 
+        `${accountData.profileImage}?t=${Date.now()}`;
+      setProfileImage(imageUrlWithTimestamp);
     }
     
     // Refresh account info when switching to account information tab
@@ -64,13 +72,21 @@ const AccountInformation = () => {
     fetchAccountInfo();
   }, []);
 
+  // Effect to add timestamp to profile image URLs to prevent caching issues
+  useEffect(() => {
+    if (profileImage && !profileImage.includes('?t=')) {
+      setProfileImage(`${profileImage}?t=${Date.now()}`);
+    }
+  }, [profileImage]);
+
   const fetchAccountInfo = async () => {
     try {
       const response = await axios.get('http://localhost:8080/api/user/account', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      // Extract profile image URL
-      const profileImageUrl = response.data.profileImage || '';
+      // Extract profile image URL and add timestamp to prevent caching issues
+      const profileImageUrl = response.data.profileImage ? 
+        `${response.data.profileImage}?t=${Date.now()}` : '';
       
       // Map backend fields to frontend state - ensure both states are synced
       setAccountData({
@@ -147,7 +163,7 @@ const AccountInformation = () => {
     return new Promise((resolve) => {
       canvas.toBlob((blob) => {
         resolve(blob);
-      }, 'image/jpeg', 0.9);
+      }, 'image/jpeg', 0.95);
     });
   };
 
@@ -160,7 +176,9 @@ const AccountInformation = () => {
       const file = e.target.files[0];
       const reader = new FileReader();
       reader.onload = () => {
-        setImageToCrop(reader.result);
+        // Add a timestamp to prevent caching issues
+        const imageUrlWithTimestamp = `${reader.result}?t=${Date.now()}`;
+        setImageToCrop(imageUrlWithTimestamp);
         setShowCropper(true);
       };
       reader.readAsDataURL(file);
@@ -172,8 +190,10 @@ const AccountInformation = () => {
       setUploading(true);
       const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
       
-      // Generate unique filename
-      const fileName = `profile_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+      // Generate unique filename with timestamp to prevent caching issues
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(7);
+      const fileName = `profile_${timestamp}_${randomString}.jpg`;
       
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
@@ -188,12 +208,12 @@ const AccountInformation = () => {
         throw error;
       }
 
-      // Get public URL
+      // Get public URL with timestamp to prevent caching issues
       const { data: urlData } = supabase.storage
         .from('Profile Image')
         .getPublicUrl(fileName);
 
-      const imageUrl = urlData.publicUrl;
+      const imageUrl = `${urlData.publicUrl}?t=${timestamp}`;
       
       // Update both local states synchronously
       setProfileImage(imageUrl);
