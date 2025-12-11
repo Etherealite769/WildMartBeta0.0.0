@@ -24,21 +24,18 @@ public interface MessageRepository extends JpaRepository<Message, Integer> {
 
     // Find all conversations for a user
     @Query("SELECT DISTINCT m.conversationId FROM Message m " +
-           "WHERE m.sender = :user OR m.receiver = :user " +
-           "ORDER BY m.createdAt DESC")
+           "WHERE m.sender = :user OR m.receiver = :user")
     List<String> findDistinctConversationIdsByUser(@Param("user") User user);
 
-    // Find the latest message in each conversation for a user
+    // Find all messages in conversations (will filter for latest in service layer)
     @Query("SELECT m FROM Message m " +
            "LEFT JOIN FETCH m.sender " +
            "LEFT JOIN FETCH m.receiver " +
            "LEFT JOIN FETCH m.product " +
            "LEFT JOIN FETCH m.order " +
            "WHERE m.conversationId IN :conversationIds " +
-           "AND m.createdAt = (" +
-           "  SELECT MAX(m2.createdAt) FROM Message m2 WHERE m2.conversationId = m.conversationId" +
-           ")")
-    List<Message> findLatestMessagesByConversationIds(@Param("conversationIds") List<String> conversationIds);
+           "ORDER BY m.conversationId, m.createdAt DESC")
+    List<Message> findMessagesByConversationIds(@Param("conversationIds") List<String> conversationIds);
 
     // Count unread messages for a user
     @Query("SELECT COUNT(m) FROM Message m " +
@@ -49,6 +46,11 @@ public interface MessageRepository extends JpaRepository<Message, Integer> {
     @Query("UPDATE Message m SET m.isRead = true " +
            "WHERE m.conversationId = :conversationId AND m.receiver = :user")
     void markMessagesAsRead(@Param("conversationId") String conversationId, @Param("user") User user);
+
+    // Mark all messages as read for a user
+    @Query("UPDATE Message m SET m.isRead = true " +
+           "WHERE m.receiver = :user AND m.isRead = false")
+    void markAllMessagesAsRead(@Param("user") User user);
 
     // Find messages between two users about a specific product
     @Query("SELECT m FROM Message m " +

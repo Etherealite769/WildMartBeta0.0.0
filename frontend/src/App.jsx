@@ -18,12 +18,13 @@ import OrderDetails from './pages/OrderDetails';
 import SalesOrderDetails from './pages/SalesOrderDetails';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
-import SuccessfulBuy from './pages/SuccessfulBuy';
+import Conversations from './pages/Conversations';
 import ProductDetails from './pages/ProductDetails';
 
 import AccountInformation from './pages/AccountInformation';
 import AddProduct from './pages/AddProduct';
 import EditProduct from './pages/EditProduct';
+import SuccessfulBuy from './pages/SuccessfulBuy';
 import './App.css';
 
 function App() {
@@ -108,6 +109,10 @@ function App() {
             element={isAuthenticated ? <MyOrders /> : <Navigate to="/login" />} 
           />
           
+          <Route 
+            path="/conversations" 
+            element={isAuthenticated ? <Conversations /> : <Navigate to="/login" />} 
+          />
           <Route 
             path="/sales-order-details/:orderId" 
             element={isAuthenticated ? <SalesOrderDetails /> : <Navigate to="/login" />} 

@@ -110,13 +110,20 @@ public class MessageController {
     }
     
     private User getUserFromAuth(Authentication authentication) {
+        if (authentication == null) {
+            throw new RuntimeException("Authentication is null");
+        }
+        
         Object principal = authentication.getPrincipal();
+        log.info("Principal class: {}", principal != null ? principal.getClass().getName() : "null");
+        
         if (principal instanceof User) {
             return (User) principal;
         } else {
             String email = authentication.getName();
+            log.info("Looking up user by email: {}", email);
             return userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
         }
     }
 
@@ -126,12 +133,20 @@ public class MessageController {
     @GetMapping("/conversations")
     public ResponseEntity<?> getConversations(Authentication authentication) {
         try {
+            log.info("Fetching conversations for authentication: {}", authentication);
+            if (authentication == null) {
+                log.error("Authentication is null");
+                return ResponseEntity.badRequest().body(Map.of("error", "Not authenticated"));
+            }
+            
             User user = getUserFromAuth(authentication);
+            log.info("User fetched: {}", user != null ? user.getUserId() : null);
+            
             List<Map<String, Object>> conversations = messageService.getConversations(user.getUserId());
             return ResponseEntity.ok(conversations);
         } catch (Exception e) {
             log.error("Error fetching conversations: ", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage(), "details", e.toString()));
         }
     }
 
@@ -193,6 +208,21 @@ public class MessageController {
     }
 
     /**
+     * Mark all messages as read
+     */
+    @PostMapping("/mark-all-read")
+    public ResponseEntity<?> markAllAsRead(Authentication authentication) {
+        try {
+            User user = getUserFromAuth(authentication);
+            messageService.markAllAsRead(user.getUserId());
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (Exception e) {
+            log.error("Error marking all messages as read: ", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Get conversation ID for messaging about a product
      */
     @GetMapping("/product-conversation/{productId}/seller/{sellerId}")
@@ -212,6 +242,52 @@ public class MessageController {
             return ResponseEntity.ok(Map.of("conversationId", conversationId));
         } catch (Exception e) {
             log.error("Error getting product conversation ID: ", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get conversation ID for messaging about an order
+     */
+    @GetMapping("/order-conversation/{orderId}/receiver/{receiverId}")
+    public ResponseEntity<?> getOrderConversationId(
+            @PathVariable Integer orderId,
+            @PathVariable Integer receiverId,
+            Authentication authentication) {
+        try {
+            User user = getUserFromAuth(authentication);
+
+            String conversationId = messageService.getOrderConversationId(
+                    user.getUserId(),
+                    receiverId,
+                    orderId
+            );
+
+            return ResponseEntity.ok(Map.of("conversationId", conversationId));
+        } catch (Exception e) {
+            log.error("Error getting order conversation ID: ", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get conversation ID for direct messaging
+     */
+    @GetMapping("/direct-conversation/receiver/{receiverId}")
+    public ResponseEntity<?> getDirectConversationId(
+            @PathVariable Integer receiverId,
+            Authentication authentication) {
+        try {
+            User user = getUserFromAuth(authentication);
+
+            String conversationId = messageService.getDirectConversationId(
+                    user.getUserId(),
+                    receiverId
+            );
+
+            return ResponseEntity.ok(Map.of("conversationId", conversationId));
+        } catch (Exception e) {
+            log.error("Error getting direct conversation ID: ", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
