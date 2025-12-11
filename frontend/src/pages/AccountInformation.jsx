@@ -43,8 +43,8 @@ const AccountInformation = () => {
   // Effect to sync profileImage state with accountData when accountData changes
   useEffect(() => {
     if (accountData.profileImage && accountData.profileImage !== profileImage) {
-      // Add timestamp to prevent caching issues
-      const imageUrlWithTimestamp = accountData.profileImage.includes('?') ? 
+      // Add timestamp to HTTP URLs to prevent caching issues, but not to data URLs
+      const imageUrlWithTimestamp = accountData.profileImage.startsWith('data:') || accountData.profileImage.includes('?') ? 
         accountData.profileImage : 
         `${accountData.profileImage}?t=${Date.now()}`;
       setProfileImage(imageUrlWithTimestamp);
@@ -54,8 +54,8 @@ const AccountInformation = () => {
   // Effect to ensure profileImage state is updated when activeTab changes
   useEffect(() => {
     if (accountData.profileImage && accountData.profileImage !== profileImage) {
-      // Add timestamp to prevent caching issues
-      const imageUrlWithTimestamp = accountData.profileImage.includes('?') ? 
+      // Add timestamp to HTTP URLs to prevent caching issues, but not to data URLs
+      const imageUrlWithTimestamp = accountData.profileImage.startsWith('data:') || accountData.profileImage.includes('?') ? 
         accountData.profileImage : 
         `${accountData.profileImage}?t=${Date.now()}`;
       setProfileImage(imageUrlWithTimestamp);
@@ -74,7 +74,8 @@ const AccountInformation = () => {
 
   // Effect to add timestamp to profile image URLs to prevent caching issues
   useEffect(() => {
-    if (profileImage && !profileImage.includes('?t=')) {
+    // Only add timestamp to HTTP URLs, not data URLs
+    if (profileImage && !profileImage.startsWith('data:') && !profileImage.includes('?t=')) {
       setProfileImage(`${profileImage}?t=${Date.now()}`);
     }
   }, [profileImage]);
@@ -84,9 +85,11 @@ const AccountInformation = () => {
       const response = await axios.get('http://localhost:8080/api/user/account', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      // Extract profile image URL and add timestamp to prevent caching issues
+      // Extract profile image URL and add timestamp to HTTP URLs to prevent caching issues
       const profileImageUrl = response.data.profileImage ? 
-        `${response.data.profileImage}?t=${Date.now()}` : '';
+        (response.data.profileImage.startsWith('data:') ? 
+          response.data.profileImage : 
+          `${response.data.profileImage}?t=${Date.now()}`) : '';
       
       // Map backend fields to frontend state - ensure both states are synced
       setAccountData({
@@ -176,9 +179,8 @@ const AccountInformation = () => {
       const file = e.target.files[0];
       const reader = new FileReader();
       reader.onload = () => {
-        // Add a timestamp to prevent caching issues
-        const imageUrlWithTimestamp = `${reader.result}?t=${Date.now()}`;
-        setImageToCrop(imageUrlWithTimestamp);
+        // Don't add timestamp to data URLs as they're already unique
+        setImageToCrop(reader.result);
         setShowCropper(true);
       };
       reader.readAsDataURL(file);
@@ -213,6 +215,7 @@ const AccountInformation = () => {
         .from('Profile Image')
         .getPublicUrl(fileName);
 
+      // HTTP URLs should have timestamp, but data URLs should not
       const imageUrl = `${urlData.publicUrl}?t=${timestamp}`;
       
       // Update both local states synchronously
