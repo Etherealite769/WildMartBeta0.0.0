@@ -73,9 +73,12 @@ const Dashboard = () => {
       return true;
     });
     
-    // Apply category filter
+    // Apply category filter (case-insensitive comparison)
     if (selectedCategory !== 'All') {
-      filtered = filtered.filter(p => p.categoryName === selectedCategory);
+      filtered = filtered.filter(p => 
+        p.categoryName && 
+        p.categoryName.toLowerCase() === selectedCategory.toLowerCase()
+      );
     }
     
     // Apply search term filter
