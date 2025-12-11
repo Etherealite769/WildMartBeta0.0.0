@@ -60,6 +60,9 @@ const Navbar = () => {
           
           <Link to="/my-orders" className={`nav-link ${isActive('/my-orders') ? 'active' : ''}`}>My Orders</Link>
           <Link to="/my-likes" className={`nav-link ${isActive('/my-likes') ? 'active' : ''}`}>Likes</Link>
+          <Link to="/conversations" className={`nav-link ${isActive('/conversations') ? 'active' : ''}`}>
+            Messages
+          </Link>
           <Link to="/cart" className={`nav-link ${isActive('/cart') ? 'active' : ''}`}>
             🛒 Cart
           </Link>

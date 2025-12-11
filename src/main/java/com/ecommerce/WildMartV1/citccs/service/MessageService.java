@@ -62,15 +62,12 @@ public class MessageService {
             message.setOrder(order);
         }
 
-        // Generate conversation ID
-        int user1 = Math.min(senderId, receiverId);
-        int user2 = Math.max(senderId, receiverId);
-        String conversationId = "conv_" + user1 + "_" + user2;
+        // Generate conversation ID using the same logic as the getter methods
+        String conversationId = getDirectConversationId(senderId, receiverId);
         if (productId != null) {
-            conversationId += "_p" + productId;
-        }
-        if (orderId != null) {
-            conversationId += "_o" + orderId;
+            conversationId = getProductConversationId(senderId, receiverId, productId);
+        } else if (orderId != null) {
+            conversationId = getOrderConversationId(senderId, receiverId, orderId);
         }
         message.setConversationId(conversationId);
 
@@ -83,16 +80,34 @@ public class MessageService {
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getConversations(Integer userId) {
+        log.info("Fetching conversations for user ID: {}", userId);
+        
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found for ID: " + userId));
 
+        log.info("Found user: {}", user != null ? user.getEmail() : null);
+        
         List<String> conversationIds = messageRepository.findDistinctConversationIdsByUser(user);
+        log.info("Found {} conversation IDs for user", conversationIds.size());
         
         if (conversationIds.isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<Message> latestMessages = messageRepository.findLatestMessagesByConversationIds(conversationIds);
+        List<Message> allMessages = messageRepository.findMessagesByConversationIds(conversationIds);
+        log.info("Found {} messages in conversations", allMessages.size());
+        
+        // Filter to get the latest message for each conversation
+        Map<String, Message> latestMessagesMap = new LinkedHashMap<>();
+        for (Message message : allMessages) {
+            String conversationId = message.getConversationId();
+            if (!latestMessagesMap.containsKey(conversationId)) {
+                latestMessagesMap.put(conversationId, message);
+            }
+        }
+        List<Message> latestMessages = new ArrayList<>(latestMessagesMap.values());
+        
+        log.info("Filtered to {} latest messages", latestMessages.size());
 
         return latestMessages.stream().map(message -> {
             Map<String, Object> conversation = new HashMap<>();
@@ -178,6 +193,17 @@ public class MessageService {
     }
 
     /**
+     * Mark all messages as read
+     */
+    @Transactional
+    public void markAllAsRead(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        messageRepository.markAllMessagesAsRead(user);
+    }
+
+    /**
      * Get unread message count for a user
      */
     @Transactional(readOnly = true)
@@ -203,5 +229,14 @@ public class MessageService {
         int user1 = Math.min(buyerId, sellerId);
         int user2 = Math.max(buyerId, sellerId);
         return "conv_" + user1 + "_" + user2 + "_o" + orderId;
+    }
+
+    /**
+     * Get or create conversation ID for direct messaging
+     */
+    public String getDirectConversationId(Integer userId, Integer receiverId) {
+        int user1 = Math.min(userId, receiverId);
+        int user2 = Math.max(userId, receiverId);
+        return "conv_" + user1 + "_" + user2;
     }
 }

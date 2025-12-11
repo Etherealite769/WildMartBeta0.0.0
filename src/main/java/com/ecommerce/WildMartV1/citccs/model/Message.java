@@ -58,17 +58,7 @@ public class Message {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
-        if (conversationId == null) {
-            // Generate conversation ID based on users (smaller ID first for consistency)
-            int user1 = Math.min(sender.getUserId(), receiver.getUserId());
-            int user2 = Math.max(sender.getUserId(), receiver.getUserId());
-            conversationId = "conv_" + user1 + "_" + user2;
-            if (product != null) {
-                conversationId += "_p" + product.getProductId();
-            }
-            if (order != null) {
-                conversationId += "_o" + order.getOrderId();
-            }
-        }
+        // Don't auto-generate conversationId here since it's set explicitly in the service layer
+        // The service layer has the correct logic for generating consistent conversation IDs
     }
 }

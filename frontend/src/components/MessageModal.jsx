@@ -50,38 +50,56 @@ const MessageModal = ({
     try {
       const token = localStorage.getItem('token');
       
-      // Get conversation ID
+      console.log('Fetching conversation with params:', { productId, orderId, receiverId });
+      
+      // Get conversation ID from backend
       let convId = null;
       if (productId) {
+        console.log(`Fetching product conversation: productId=${productId}, sellerId=${receiverId}`);
         const response = await axios.get(
           `http://localhost:8080/api/messages/product-conversation/${productId}/seller/${receiverId}`,
           { headers: { Authorization: `Bearer ${token}` }}
         );
         convId = response.data.conversationId;
+        console.log('Product conversation ID:', convId);
+      } else if (orderId) {
+        // For order messages, get the conversation ID from the backend
+        console.log(`Fetching order conversation: orderId=${orderId}, receiverId=${receiverId}`);
+        const response = await axios.get(
+          `http://localhost:8080/api/messages/order-conversation/${orderId}/receiver/${receiverId}`,
+          { headers: { Authorization: `Bearer ${token}` }}
+        );
+        convId = response.data.conversationId;
+        console.log('Order conversation ID:', convId);
       } else {
-        // For direct messages or order messages, construct the ID
+        // For direct messages, get the conversation ID from the backend
+        console.log(`Fetching direct conversation: receiverId=${receiverId}`);
         const userResponse = await axios.get('http://localhost:8080/api/user/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const userId = userResponse.data.userId;
-        const user1 = Math.min(userId, receiverId);
-        const user2 = Math.max(userId, receiverId);
-        convId = `conv_${user1}_${user2}`;
-        if (orderId) {
-          convId += `_o${orderId}`;
-        }
+        console.log('Current user ID:', userId);
+        const response = await axios.get(
+          `http://localhost:8080/api/messages/direct-conversation/receiver/${receiverId}`,
+          { headers: { Authorization: `Bearer ${token}` }}
+        );
+        convId = response.data.conversationId;
+        console.log('Direct conversation ID:', convId);
       }
       
       setConversationId(convId);
       
       // Fetch existing messages
+      console.log(`Fetching messages for conversation: ${convId}`);
       const messagesResponse = await axios.get(
         `http://localhost:8080/api/messages/conversation/${convId}`,
         { headers: { Authorization: `Bearer ${token}` }}
       );
+      console.log('Messages fetched:', messagesResponse.data);
       setMessages(messagesResponse.data || []);
     } catch (error) {
       console.error('Error fetching conversation:', error);
+      console.error('Error response:', error.response?.data);
       setMessages([]);
     } finally {
       setLoading(false);
@@ -113,6 +131,8 @@ const MessageModal = ({
         payload,
         { headers: { Authorization: `Bearer ${token}` }}
       );
+      
+      console.log('Message sent response:', response.data);
 
       // Add the new message to the list
       const newMsg = {
