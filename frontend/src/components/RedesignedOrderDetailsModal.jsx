@@ -3,7 +3,9 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import ConfirmModal from './ConfirmModal';
 import MessageModal from './MessageModal';
+import Rating from './Rating';
 import '../styles/RedesignedOrderDetails.css';
+import '../styles/Rating.css';
 
 const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => {
   const [order, setOrder] = useState(null);
@@ -12,6 +14,9 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState(null);
+  const [reviews, setReviews] = useState({});
+  const [showReviewForm, setShowReviewForm] = useState({});
+  const [reviewData, setReviewData] = useState({});
 
   const fetchOrderDetails = useCallback(async () => {
     try {
@@ -25,6 +30,11 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
       });
       setOrder(response.data);
       setError(null);
+      
+      // Fetch existing reviews if order is delivered
+      if (response.data.orderStatus === 'Delivered' && !isSeller) {
+        fetchOrderReviews();
+      }
     } catch (error) {
       console.error('Error fetching order details:', error);
       setError('Failed to load order details');
@@ -32,6 +42,23 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
       setLoading(false);
     }
   }, [orderId, isSeller]);
+
+  const fetchOrderReviews = useCallback(async () => {
+    try {
+      const response = await axios.get(`http://localhost:8080/api/user/orders/${orderId}/reviews`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      // Convert array to object for easier lookup
+      const reviewsObj = {};
+      response.data.forEach(review => {
+        reviewsObj[review.productId] = review;
+      });
+      setReviews(reviewsObj);
+    } catch (error) {
+      console.error('Error fetching order reviews:', error);
+    }
+  }, [orderId]);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -59,6 +86,79 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
       console.error('Error cancelling order:', error);
       toast.error('Failed to cancel order: ' + (error.response?.data?.error || error.message));
       setShowCancelModal(false);
+    }
+  };
+
+  const handleReviewChange = (productId, field, value) => {
+    setReviewData(prev => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        [field]: value
+      }
+    }));
+  };
+
+  const toggleReviewForm = (productId) => {
+    setShowReviewForm(prev => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
+  };
+
+  const submitReview = async (productId) => {
+    try {
+      const review = reviewData[productId];
+      if (!review || !review.rating) {
+        toast.error('Please select a rating');
+        return;
+      }
+
+      const response = await axios.post(
+        `http://localhost:8080/api/user/orders/${orderId}/reviews`,
+        {
+          productId: productId,
+          rating: review.rating,
+          reviewText: review.reviewText || ''
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        }
+      );
+
+      // Update reviews state
+      setReviews(prev => ({
+        ...prev,
+        [productId]: response.data.review
+      }));
+
+      // Hide form
+      setShowReviewForm(prev => ({
+        ...prev,
+        [productId]: false
+      }));
+
+      // Reset form data
+      setReviewData(prev => {
+        const newData = { ...prev };
+        delete newData[productId];
+        return newData;
+      });
+
+      toast.success('Review submitted successfully!');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      // Check if it's the specific error about already reviewing the product
+      const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
+      
+      // Handle specific error cases
+      if (errorMessage.includes('already reviewed') || errorMessage.includes('already submitted')) {
+        toast.error('You already submitted a review for this product');
+      } else if (errorMessage.includes('lob stream') || errorMessage.includes('LOB')) {
+        toast.error('You already submitted a review for this product');
+      } else {
+        toast.error('Failed to submit review: ' + errorMessage);
+      }
     }
   };
 
@@ -212,6 +312,11 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
             </div>
             <div className="items-list">
               {order.items?.map(item => {
+                const productId = item.product?.productId;
+                const existingReview = productId ? reviews[productId] : null;
+                const showForm = productId ? showReviewForm[productId] : false;
+                const formData = productId ? reviewData[productId] || {} : {};
+                
                 return (
                   <div key={item.id} className="item-row">
                     <div className="item-info">
@@ -233,6 +338,64 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
                             })} each
                           </span>
                         </div>
+                        
+                        {/* Rating Section for Delivered Orders */}
+                        {!isSeller && order.orderStatus === 'Delivered' && (
+                          <div className="rating-section">
+                            {existingReview ? (
+                              <div className="existing-review">
+                                <div className="review-rating">
+                                  <Rating rating={existingReview.rating} readOnly={true} />
+                                </div>
+                                {existingReview.reviewText && (
+                                  <div className="review-text">
+                                    {existingReview.reviewText}
+                                  </div>
+                                )}
+                                <div className="review-date">
+                                  Reviewed on {new Date(existingReview.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                            ) : null}
+                            
+                            <button 
+                              className={`btn-rate ${existingReview ? 'btn-rated' : ''}`}
+                              onClick={() => !existingReview && toggleReviewForm(productId)}
+                              disabled={!!existingReview}
+                            >
+                              {existingReview ? 'Product Rated' : (showForm ? 'Cancel Review' : 'Rate Product')}
+                            </button>
+                            
+                            {showForm && !existingReview && (
+                              <div className="review-form">
+                                <div className="form-group">
+                                  <label>Rating:</label>
+                                  <Rating 
+                                    rating={formData.rating || 0}
+                                    onRatingChange={(rating) => handleReviewChange(productId, 'rating', rating)}
+                                  />
+                                </div>
+                                
+                                <div className="form-group">
+                                  <label>Review (optional):</label>
+                                  <textarea
+                                    value={formData.reviewText || ''}
+                                    onChange={(e) => handleReviewChange(productId, 'reviewText', e.target.value)}
+                                    placeholder="Share your experience with this product..."
+                                    rows="3"
+                                  />
+                                </div>
+                                
+                                <button 
+                                  className="btn-submit-review"
+                                  onClick={() => submitReview(productId)}
+                                >
+                                  Submit Review
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="item-total">
