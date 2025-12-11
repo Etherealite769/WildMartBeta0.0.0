@@ -6,6 +6,7 @@ import com.ecommerce.WildMartV1.citccs.model.User;
 import com.ecommerce.WildMartV1.citccs.dto.ProductDTO; // Import ProductDTO
 import com.ecommerce.WildMartV1.citccs.repository.CategoryRepository;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
+import com.ecommerce.WildMartV1.citccs.repository.ReviewRepository; // Add ReviewRepository import
 import com.ecommerce.WildMartV1.citccs.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
@@ -36,6 +37,9 @@ public class ProductController {
     private CategoryRepository categoryRepository;
 
     @Autowired
+    private ReviewRepository reviewRepository; // Add ReviewRepository autowired
+
+    @Autowired
     private UserService userService; // Keep for other methods if they rely on it
 
     @Autowired
@@ -62,6 +66,7 @@ public class ProductController {
             productMap.put("viewCount", product.getViewCount());
             productMap.put("likeCount", product.getLikeCount());
             productMap.put("averageRating", product.getAverageRating());
+            productMap.put("reviewCount", reviewRepository.countByProduct(product)); // Add review count
             productMap.put("createdAt", product.getCreatedAt());
             productMap.put("updatedAt", product.getUpdatedAt());
             // Add category name
@@ -97,6 +102,7 @@ public class ProductController {
         productMap.put("viewCount", product.getViewCount());
         productMap.put("likeCount", product.getLikeCount());
         productMap.put("averageRating", product.getAverageRating());
+        productMap.put("reviewCount", reviewRepository.countByProduct(product)); // Add review count
         productMap.put("createdAt", product.getCreatedAt());
         productMap.put("updatedAt", product.getUpdatedAt());
 
