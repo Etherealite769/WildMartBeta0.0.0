@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
+import ProductDetailsModal from '../components/ProductDetailsModal';
 import ProductCardSkeleton from '../components/ProductCardSkeleton';
 import '../styles/MyLikes.css';
 
@@ -14,6 +15,8 @@ const MyLikes = () => {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
   const [totalLikes, setTotalLikes] = useState(0);
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchLikedProducts = useCallback(async (pageNum = 0, append = false) => {
     try {
@@ -65,6 +68,18 @@ const MyLikes = () => {
     fetchLikedProducts(page + 1, true);
   };
 
+  // Handle product click to open modal
+  const handleProductClick = (productId) => {
+    setSelectedProductId(productId);
+    setIsModalOpen(true);
+  };
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProductId(null);
+  };
+
   // Render skeleton loaders
   const renderSkeletons = (count) => {
     return Array.from({ length: count }).map((_, index) => (
@@ -106,7 +121,7 @@ const MyLikes = () => {
                   <div key={productId} className="liked-product-card">
                     <ProductCard 
                       product={product}
-                      onClick={() => navigate(`/product/${productId}`)}
+                      onClick={() => handleProductClick(productId)}
                       onUnlike={() => handleUnlike(productId)}
                       initialLiked={true}
                     />
@@ -147,6 +162,13 @@ const MyLikes = () => {
           )}
         </div>
       </div>
+      
+      {/* Product Details Modal */}
+      <ProductDetailsModal 
+        productId={selectedProductId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };
