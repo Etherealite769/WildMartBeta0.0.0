@@ -12,7 +12,6 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState(null);
-  const [activeTab, setActiveTab] = useState('summary');
 
   const fetchOrderDetails = useCallback(async () => {
     try {
@@ -68,8 +67,8 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
       <div className="modal-overlay" onClick={onClose}>
         <div className="redesigned-modal" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
-            <h2>Loading Order Details...</h2>
-            <button className="btn-close" onClick={onClose}>×</button>
+            <h2>Order Details</h2>
+            {/* Removed close button as per user preference */}
           </div>
           <div className="loading-state">
             <div className="spinner"></div>
@@ -86,7 +85,7 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
         <div className="redesigned-modal" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h2>Order Details</h2>
-            <button className="btn-close" onClick={onClose}>×</button>
+            {/* Removed close button as per user preference */}
           </div>
           <div className="error-state">
             <div className="error-icon">⚠️</div>
@@ -104,8 +103,26 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
   const shippingFee = Number(order.shippingFee) || (totalAmount * 0.05); // Default to 5% if not provided
   const subtotal = totalAmount + discountAmount - shippingFee;
 
-  // Get first 3 items for preview
-  const previewItems = order.items?.slice(0, 3) || [];
+  // Extract buyer name with fallback logic
+  const getBuyerName = (buyer) => {
+    if (!buyer) return 'Unknown Buyer';
+    return buyer.fullName || buyer.full_name || buyer.name || buyer.username || 'Unknown Buyer';
+  };
+
+  // Extract seller name with fallback logic
+  const getSellerName = (seller) => {
+    if (!seller) return 'Unknown Seller';
+    
+    if (seller.firstName && seller.lastName) {
+      return `${seller.firstName} ${seller.lastName}`;
+    }
+    return seller.fullName || seller.full_name || seller.name || seller.username || 'Unknown Seller';
+  };
+
+  // Get seller info from first item (assuming single seller per order)
+  const firstItem = order.items?.[0];
+  const seller = firstItem?.product?.seller;
+  const sellerName = seller ? getSellerName(seller) : 'Unknown Seller';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -127,388 +144,157 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
               </span>
             </div>
           </div>
-          <button className="btn-close" onClick={onClose}>×</button>
+          {/* Removed close button as per user preference */}
         </div>
         
-        {/* Tabs */}
-        <div className="tabs">
-          <button 
-            className={`tab ${activeTab === 'summary' ? 'active' : ''}`}
-            onClick={() => setActiveTab('summary')}
-          >
-            Summary
-          </button>
-          <button 
-            className={`tab ${activeTab === 'items' ? 'active' : ''}`}
-            onClick={() => setActiveTab('items')}
-          >
-            Items ({order.items?.length || 0})
-          </button>
-          <button 
-            className={`tab ${activeTab === 'details' ? 'active' : ''}`}
-            onClick={() => setActiveTab('details')}
-          >
-            Details
-          </button>
-        </div>
-        
-        {/* Tab Content */}
-        <div className="tab-content">
-          {/* Summary Tab */}
-          {activeTab === 'summary' && (
-            <div className="summary-tab">
-              <div className="summary-grid">
-                <div className="summary-card">
-                  <h3>Order Information</h3>
-                  <div className="info-row">
-                    <span className="label">Order Date</span>
-                    <span className="value">
-                      {new Date(order.orderDate).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Status</span>
-                    <span className={`value status-badge ${order.orderStatus?.toLowerCase()}`}>
-                      {order.orderStatus}
-                    </span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Payment Status</span>
-                    <span className={`value status-badge ${order.paymentStatus?.toLowerCase()}`}>
-                      {order.paymentStatus}
-                    </span>
-                  </div>
-                  {isSeller && order.buyer && (
-                    <div className="info-row">
-                      <span className="label">Buyer</span>
-                      <span className="value">
-                        {order.buyer?.fullName || order.buyer?.username || 'Unknown Buyer'}
+        {/* Main Content */}
+        <div className="modal-content">
+          {/* Order Summary Section */}
+          <div className="section">
+            <h3>Order Summary</h3>
+            <div className="summary-grid">
+              <div className="summary-item">
+                <span className="label">Order Date</span>
+                <span className="value">
+                  {new Date(order.orderDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
+              </div>
+              <div className="summary-item">
+                <span className="label">Payment Status</span>
+                <span className={`value status-badge ${order.paymentStatus?.toLowerCase()}`}>
+                  {order.paymentStatus}
+                </span>
+              </div>
+              {isSeller && order.buyer && (
+                <div className="summary-item">
+                  <span className="label">Buyer</span>
+                  <span className="value">
+                    {getBuyerName(order.buyer)}
+                  </span>
+                </div>
+              )}
+              <div className="summary-item">
+                <span className="label">Shipping Address</span>
+                <span className="value address-value">
+                  {order.shippingAddress || 'No address provided'}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Items Section */}
+          <div className="section">
+            <div className="section-header">
+              <h3>Items ({order.items?.length || 0})</h3>
+              {/* Single message button for the entire order (not per item) */}
+              {!isSeller && seller?.userId && (
+                <button 
+                  className="btn-message"
+                  onClick={() => {
+                    setSelectedSeller({
+                      id: seller.userId,
+                      name: sellerName,
+                      image: seller.profileImage,
+                      orderId: parseInt(orderId),
+                      orderNumber: order.orderNumber || order.orderId
+                    });
+                    setShowMessageModal(true);
+                  }}
+                >
+                  Message Seller
+                </button>
+              )}
+            </div>
+            <div className="items-list">
+              {order.items?.map(item => {
+                return (
+                  <div key={item.id} className="item-row">
+                    <div className="item-info">
+                      <img 
+                        src={item.product?.imageUrl || '/placeholder.png'} 
+                        alt={item.product?.productName}
+                        onError={(e) => {
+                          e.target.src = '/placeholder.png';
+                        }}
+                      />
+                      <div className="item-details">
+                        <h4>{item.product?.productName}</h4>
+                        <div className="item-meta">
+                          <span className="quantity">Qty: {item.quantity}</span>
+                          <span className="unit-price">
+                            ₱{Number(item.unitPrice).toLocaleString('en-PH', { 
+                              minimumFractionDigits: 2, 
+                              maximumFractionDigits: 2 
+                            })} each
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="item-total">
+                      <span className="price">
+                        ₱{Number(item.subtotal).toLocaleString('en-PH', { 
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: 2 
+                        })}
                       </span>
                     </div>
-                  )}
-                </div>
-                
-                <div className="summary-card">
-                  <h3>Shipping Information</h3>
-                  <div className="info-row">
-                    <span className="label">Address</span>
-                    <span className="value address-value">
-                      {order.shippingAddress || 'No address provided'}
-                    </span>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Pricing Breakdown Section */}
+          <div className="section pricing-section">
+            <h3>Order Total</h3>
+            <div className="pricing-breakdown">
+              <div className="breakdown-row">
+                <span>Subtotal</span>
+                <span>
+                  ₱{subtotal.toLocaleString('en-PH', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </span>
+              </div>
+              <div className="breakdown-row">
+                <span>Shipping</span>
+                <span>
+                  ₱{shippingFee.toLocaleString('en-PH', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="breakdown-row discount">
+                  <span>Discount</span>
+                  <span>
+                    -₱{discountAmount.toLocaleString('en-PH', { 
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2 
+                    })}
+                  </span>
                 </div>
-                
-                <div className="pricing-summary">
-                  <h3>Order Total</h3>
-                  <div className="total-amount">
+              )}
+              <div className="breakdown-row total">
+                <span><strong>Total</strong></span>
+                <span className="total-amount">
+                  <strong>
                     ₱{totalAmount.toLocaleString('en-PH', { 
                       minimumFractionDigits: 2, 
                       maximumFractionDigits: 2 
                     })}
-                  </div>
-                  <div className="pricing-breakdown">
-                    <div className="breakdown-row">
-                      <span>Subtotal</span>
-                      <span>
-                        ₱{subtotal.toLocaleString('en-PH', { 
-                          minimumFractionDigits: 2, 
-                          maximumFractionDigits: 2 
-                        })}
-                      </span>
-                    </div>
-                    <div className="breakdown-row">
-                      <span>Shipping</span>
-                      <span>
-                        ₱{shippingFee.toLocaleString('en-PH', { 
-                          minimumFractionDigits: 2, 
-                          maximumFractionDigits: 2 
-                        })}
-                      </span>
-                    </div>
-                    {discountAmount > 0 && (
-                      <div className="breakdown-row discount">
-                        <span>Discount</span>
-                        <span>
-                          -₱{discountAmount.toLocaleString('en-PH', { 
-                            minimumFractionDigits: 2, 
-                            maximumFractionDigits: 2 
-                          })}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Items Preview */}
-              <div className="items-preview-section">
-                <h3>Items Preview</h3>
-                <div className="items-preview-grid">
-                  {previewItems.map(item => {
-                    // Extract seller name with fallback logic
-                    let sellerName = 'Unknown Seller';
-                    const seller = item.product?.seller;
-                    
-                    if (item.product?.sellerName) {
-                      sellerName = item.product.sellerName;
-                    } else if (item.product?.fullName) {
-                      sellerName = item.product.fullName;
-                    } else if (item.product?.full_name) {
-                      sellerName = item.product.full_name;
-                    } else if (seller) {
-                      if (seller.firstName && seller.lastName) {
-                        sellerName = `${seller.firstName} ${seller.lastName}`;
-                      } else if (seller.fullName) {
-                        sellerName = seller.fullName;
-                      } else if (seller.full_name) {
-                        sellerName = seller.full_name;
-                      } else if (seller.firstName) {
-                        sellerName = seller.firstName;
-                      } else if (seller.lastName) {
-                        sellerName = seller.lastName;
-                      } else if (seller.name) {
-                        sellerName = seller.name;
-                      } else if (seller.username) {
-                        sellerName = seller.username;
-                      } else if (seller.email) {
-                        sellerName = seller.email.split('@')[0];
-                      }
-                    }
-                    
-                    return (
-                      <div key={item.id} className="preview-item">
-                        <img 
-                          src={item.product?.imageUrl || '/placeholder.png'} 
-                          alt={item.product?.productName}
-                          onError={(e) => {
-                            e.target.src = '/placeholder.png';
-                          }}
-                        />
-                        <div className="preview-item-details">
-                          <h4>{item.product?.productName}</h4>
-                          <p className="seller">by {sellerName}</p>
-                          <div className="item-meta">
-                            <span className="quantity">Qty: {item.quantity}</span>
-                            <span className="price">
-                              ₱{Number(item.subtotal).toLocaleString('en-PH', { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {order.items?.length > 3 && (
-                    <div className="preview-more">
-                      <span>+{order.items.length - 3} more items</span>
-                      <button 
-                        className="btn-view-all"
-                        onClick={() => setActiveTab('items')}
-                      >
-                        View All
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  </strong>
+                </span>
               </div>
             </div>
-          )}
-          
-          {/* Items Tab */}
-          {activeTab === 'items' && (
-            <div className="items-tab">
-              <div className="items-list">
-                {order.items?.map(item => {
-                  // Extract seller name with fallback logic
-                  let sellerName = 'Unknown Seller';
-                  const seller = item.product?.seller;
-                  
-                  if (item.product?.sellerName) {
-                    sellerName = item.product.sellerName;
-                  } else if (item.product?.fullName) {
-                    sellerName = item.product.fullName;
-                  } else if (item.product?.full_name) {
-                    sellerName = item.product.full_name;
-                  } else if (seller) {
-                    if (seller.firstName && seller.lastName) {
-                      sellerName = `${seller.firstName} ${seller.lastName}`;
-                    } else if (seller.fullName) {
-                      sellerName = seller.fullName;
-                    } else if (seller.full_name) {
-                      sellerName = seller.full_name;
-                    } else if (seller.firstName) {
-                      sellerName = seller.firstName;
-                    } else if (seller.lastName) {
-                      sellerName = seller.lastName;
-                    } else if (seller.name) {
-                      sellerName = seller.name;
-                    } else if (seller.username) {
-                      sellerName = seller.username;
-                    } else if (seller.email) {
-                      sellerName = seller.email.split('@')[0];
-                    }
-                  }
-                  
-                  return (
-                    <div key={item.id} className="item-card">
-                      <div className="item-main">
-                        <img 
-                          src={item.product?.imageUrl || '/placeholder.png'} 
-                          alt={item.product?.productName}
-                          onError={(e) => {
-                            e.target.src = '/placeholder.png';
-                          }}
-                        />
-                        <div className="item-details">
-                          <h4>{item.product?.productName}</h4>
-                          <p className="seller">by {sellerName}</p>
-                          <div className="item-meta">
-                            <span className="quantity">Quantity: {item.quantity}</span>
-                            <span className="unit-price">
-                              Unit Price: ₱{Number(item.unitPrice).toLocaleString('en-PH', { 
-                                minimumFractionDigits: 2, 
-                                maximumFractionDigits: 2 
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="item-total">
-                        <span className="price">
-                          ₱{Number(item.subtotal).toLocaleString('en-PH', { 
-                            minimumFractionDigits: 2, 
-                            maximumFractionDigits: 2 
-                          })}
-                        </span>
-                        {!isSeller && item.product?.seller?.userId && (
-                          <button 
-                            className="btn-message"
-                            onClick={() => {
-                              setSelectedSeller({
-                                id: item.product.seller.userId,
-                                name: sellerName,
-                                image: item.product.seller.profileImage,
-                                productId: item.product.productId,
-                                productName: item.product.productName
-                              });
-                              setShowMessageModal(true);
-                            }}
-                          >
-                            Message Seller
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          
-          {/* Details Tab */}
-          {activeTab === 'details' && (
-            <div className="details-tab">
-              <div className="details-grid">
-                <div className="details-card">
-                  <h3>Payment Information</h3>
-                  <div className="info-row">
-                    <span className="label">Payment Method</span>
-                    <span className="value">Credit Card</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Payment Status</span>
-                    <span className={`value status-badge ${order.paymentStatus?.toLowerCase()}`}>
-                      {order.paymentStatus}
-                    </span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Total Amount</span>
-                    <span className="value total-amount">
-                      ₱{totalAmount.toLocaleString('en-PH', { 
-                        minimumFractionDigits: 2, 
-                        maximumFractionDigits: 2 
-                      })}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="details-card">
-                  <h3>Shipping Details</h3>
-                  <div className="info-row">
-                    <span className="label">Shipping Address</span>
-                    <span className="value address-value">
-                      {order.shippingAddress || 'No address provided'}
-                    </span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Shipping Fee</span>
-                    <span className="value">
-                      ₱{shippingFee.toLocaleString('en-PH', { 
-                        minimumFractionDigits: 2, 
-                        maximumFractionDigits: 2 
-                      })}
-                    </span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Estimated Delivery</span>
-                    <span className="value">3-5 business days</span>
-                  </div>
-                </div>
-                
-                <div className="details-card">
-                  <h3>Pricing Breakdown</h3>
-                  <div className="pricing-details">
-                    <div className="breakdown-row">
-                      <span>Subtotal</span>
-                      <span>
-                        ₱{subtotal.toLocaleString('en-PH', { 
-                          minimumFractionDigits: 2, 
-                          maximumFractionDigits: 2 
-                        })}
-                      </span>
-                    </div>
-                    <div className="breakdown-row">
-                      <span>Shipping</span>
-                      <span>
-                        ₱{shippingFee.toLocaleString('en-PH', { 
-                          minimumFractionDigits: 2, 
-                          maximumFractionDigits: 2 
-                        })}
-                      </span>
-                    </div>
-                    {discountAmount > 0 && (
-                      <div className="breakdown-row discount">
-                        <span>Discount</span>
-                        <span>
-                          -₱{discountAmount.toLocaleString('en-PH', { 
-                            minimumFractionDigits: 2, 
-                            maximumFractionDigits: 2 
-                          })}
-                        </span>
-                      </div>
-                    )}
-                    <div className="breakdown-row total">
-                      <span><strong>Total</strong></span>
-                      <span>
-                        <strong>
-                          ₱{totalAmount.toLocaleString('en-PH', { 
-                            minimumFractionDigits: 2, 
-                            maximumFractionDigits: 2 
-                          })}
-                        </strong>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
         
         {/* Action Buttons - only for buyers */}
@@ -522,6 +308,13 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
             </button>
           </div>
         )}
+        
+        {/* Navigation Footer */}
+        <div className="navigation-footer">
+          <button className="btn-secondary" onClick={onClose}>
+            Back to Orders
+          </button>
+        </div>
       </div>
       
       {/* Cancel Order Confirmation Modal */}
@@ -546,10 +339,8 @@ const RedesignedOrderDetailsModal = ({ orderId, onClose, isSeller = false }) => 
           receiverId={selectedSeller.id}
           receiverName={selectedSeller.name}
           receiverImage={selectedSeller.image}
-          productId={selectedSeller.productId}
-          productName={selectedSeller.productName}
-          orderId={parseInt(orderId)}
-          orderNumber={order?.orderNumber || order?.orderId}
+          orderId={selectedSeller.orderId}
+          orderNumber={selectedSeller.orderNumber}
         />
       )}
     </div>
