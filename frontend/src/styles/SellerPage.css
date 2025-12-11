@@ -21,17 +21,6 @@
   overflow: hidden;
 }
 
-.seller-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(to bottom, #800000, #FFBF00);
-  opacity: 0.8;
-}
-
 .seller-info {
   display: flex;
   align-items: center;
@@ -152,17 +141,6 @@
   border: 1px solid #FFE6A7; /* Light gold border */
   position: relative;
   overflow: hidden;
-}
-
-.seller-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(to bottom, #800000, #FFBF00);
-  opacity: 0.8;
 }
 
 .products-section {
