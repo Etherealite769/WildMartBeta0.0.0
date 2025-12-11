@@ -289,7 +289,15 @@ public class OrderController {
                 orderItems.add(orderItem);
 
                 // Update product stock
-                product.setQuantityAvailable(product.getQuantityAvailable() - cartItem.getQuantity());
+                int newQuantity = product.getQuantityAvailable() - cartItem.getQuantity();
+                product.setQuantityAvailable(newQuantity);
+                
+                // If stock becomes 0, automatically set status to "sold"
+                if (newQuantity <= 0) {
+                    product.setStatus("sold");
+                    log.info("Product {} is now out of stock, status changed to 'sold'", product.getProductId());
+                }
+                
                 productRepository.save(product);
             }
 
@@ -568,6 +576,21 @@ public class OrderController {
                         .body(Map.of("error", "Invalid status update. Only cancellation is allowed."));
             }
 
+            // Restore stock for cancelled orders
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                int restoredQuantity = product.getQuantityAvailable() + item.getQuantity();
+                product.setQuantityAvailable(restoredQuantity);
+                
+                // If stock is restored and product was "sold", change back to "active"
+                if (restoredQuantity > 0 && "sold".equalsIgnoreCase(product.getStatus())) {
+                    product.setStatus("active");
+                    log.info("Product {} stock restored, status changed to 'active'", product.getProductId());
+                }
+                
+                productRepository.save(product);
+            }
+
             // Update order status
             order.setOrderStatus(newStatus);
             order.setUpdatedAt(LocalDateTime.now());
@@ -616,6 +639,17 @@ public class OrderController {
             // Set delivery confirmation image if provided
             if (deliveryConfirmationImage != null && !deliveryConfirmationImage.isEmpty()) {
                 order.setDeliveryConfirmationImage(deliveryConfirmationImage);
+            }
+
+            // Now that order is delivered (fulfilled), check if products should be marked as "sold"
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                // If stock is 0 or less after this fulfilled order, mark as "sold"
+                if (product.getQuantityAvailable() <= 0) {
+                    product.setStatus("sold");
+                    productRepository.save(product);
+                    log.info("Product {} is sold out after delivery, status changed to 'sold'", product.getProductId());
+                }
             }
 
             // Save the updated order

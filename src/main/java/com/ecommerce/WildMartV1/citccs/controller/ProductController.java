@@ -131,13 +131,21 @@ public class ProductController {
     public ResponseEntity<Product> createProduct(@RequestBody ProductDTO productDTO) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        String userEmail = authentication.getName();
-
-        User seller = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Seller not found with email: " + userEmail));
+        
+        // Get the user from the authentication principal (set by JwtAuthenticationFilter)
+        User seller;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            seller = (User) principal;
+        } else {
+            // Fallback: try to find by email if principal is a string
+            String userEmail = authentication.getName();
+            seller = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("Seller not found with email: " + userEmail));
+        }
 
         Product product = new Product();
         product.setSeller(seller);
@@ -165,24 +173,29 @@ public class ProductController {
         log.info("Updating product with id: {}", id);
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String authName = authentication != null ? authentication.getName() : null;
-        log.info("Authentication name: {}", authName);
-
-        // Check if user is properly authenticated (not anonymous)
-        if (authentication == null || authName == null || "anonymousUser".equals(authName)) {
+        
+        // Check if user is properly authenticated
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
             log.warn("Unauthorized access attempt for product update: {}", id);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Not authenticated", "message", "Please log in to update products"));
         }
-        String userEmail = authName;
-
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElse(null);
+        
+        // Get the user from the authentication principal (set by JwtAuthenticationFilter)
+        User currentUser;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            currentUser = (User) principal;
+        } else {
+            // Fallback: try to find by email if principal is a string
+            String userEmail = authentication.getName();
+            currentUser = userRepository.findByEmail(userEmail).orElse(null);
+        }
 
         if (currentUser == null) {
-            log.warn("User not found with email: {}", userEmail);
+            log.warn("User not found from authentication");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "User not found", "message", "User with email " + userEmail + " not found"));
+                    .body(Map.of("error", "User not found", "message", "Could not identify user from authentication"));
         }
         log.info("Current user: {} (ID: {})", currentUser.getEmail(), currentUser.getUserId());
 
@@ -199,7 +212,7 @@ public class ProductController {
 
         if (sellerId == null || !sellerId.equals(currentUser.getUserId())) {
             log.warn("User {} (ID: {}) attempted to update product {} owned by seller ID: {}",
-                    userEmail, currentUser.getUserId(), id, sellerId);
+                    currentUser.getEmail(), currentUser.getUserId(), id, sellerId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Permission denied",
                             "message", "You can only update your own products",
@@ -227,14 +240,50 @@ public class ProductController {
         }
         if (productDTO.getQuantityAvailable() != null) {
             product.setQuantityAvailable(productDTO.getQuantityAvailable());
+            
+            // If stock is regained (quantity > 0) and status was "sold", automatically set to "active"
+            if (productDTO.getQuantityAvailable() > 0 && "sold".equalsIgnoreCase(product.getStatus())) {
+                product.setStatus("active");
+                log.info("Product {} stock regained, status changed from 'sold' to 'active'", id);
+            }
         }
         if (productDTO.getStatus() != null) {
-            product.setStatus(productDTO.getStatus());
+            // Only allow manual status change if it's not conflicting with auto-status logic
+            // If quantity is 0, force status to "sold" regardless of what was sent
+            if (product.getQuantityAvailable() != null && product.getQuantityAvailable() <= 0) {
+                product.setStatus("sold");
+            } else {
+                product.setStatus(productDTO.getStatus());
+            }
         }
 
         Product updated = productRepository.save(product);
         log.info("Product {} updated successfully", id);
-        return ResponseEntity.ok(updated);
+        
+        // Return a proper Map response to avoid @JsonBackReference serialization issues
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("productId", updated.getProductId());
+        responseMap.put("productName", updated.getProductName());
+        responseMap.put("description", updated.getDescription());
+        responseMap.put("price", updated.getPrice());
+        responseMap.put("quantityAvailable", updated.getQuantityAvailable());
+        responseMap.put("imageUrl", updated.getImageUrl());
+        responseMap.put("status", updated.getStatus());
+        responseMap.put("viewCount", updated.getViewCount());
+        responseMap.put("likeCount", updated.getLikeCount());
+        responseMap.put("averageRating", updated.getAverageRating());
+        responseMap.put("createdAt", updated.getCreatedAt());
+        responseMap.put("updatedAt", updated.getUpdatedAt());
+        if (updated.getCategory() != null) {
+            responseMap.put("categoryName", updated.getCategory().getCategoryName());
+        }
+        if (updated.getSeller() != null) {
+            responseMap.put("sellerId", updated.getSeller().getUserId());
+            responseMap.put("sellerName", updated.getSeller().getFullName());
+            responseMap.put("sellerEmail", updated.getSeller().getEmail());
+        }
+        
+        return ResponseEntity.ok(responseMap);
     }
 
     @PutMapping("/{id}/multipart")
@@ -250,13 +299,20 @@ public class ProductController {
             @RequestParam(value = "image", required = false) org.springframework.web.multipart.MultipartFile image) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        String userEmail = authentication.getName();
-
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Get the user from the authentication principal
+        User user;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            user = (User) principal;
+        } else {
+            String userEmail = authentication.getName();
+            user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+        }
 
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -270,7 +326,19 @@ public class ProductController {
         product.setDescription(description);
         product.setPrice(java.math.BigDecimal.valueOf(price));
         product.setQuantityAvailable(quantityAvailable);
-        product.setStatus(status);
+        
+        // Auto-status logic: if stock is regained, set to active; if out of stock, set to sold
+        if (quantityAvailable > 0) {
+            if ("sold".equalsIgnoreCase(product.getStatus())) {
+                product.setStatus("active");
+                log.info("Product {} stock regained, status changed to 'active'", id);
+            } else {
+                product.setStatus(status);
+            }
+        } else {
+            product.setStatus("sold");
+            log.info("Product {} is out of stock, status set to 'sold'", id);
+        }
 
         // Handle category
         Category categoryPayload = new Category();
@@ -298,13 +366,20 @@ public class ProductController {
     public ResponseEntity<?> deleteProduct(
             @PathVariable Integer id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        String userEmail = authentication.getName();
-
-        User currentUser = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+        
+        // Get the user from the authentication principal
+        User currentUser;
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            currentUser = (User) principal;
+        } else {
+            String userEmail = authentication.getName();
+            currentUser = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found with email: " + userEmail));
+        }
 
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));

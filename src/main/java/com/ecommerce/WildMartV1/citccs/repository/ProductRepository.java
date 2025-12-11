@@ -26,4 +26,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.seller LEFT JOIN FETCH p.category")
     List<Product> findAllWithSellerAndCategory();
+
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.seller LEFT JOIN FETCH p.category WHERE p.seller = :seller")
+    List<Product> findBySellerWithCategoryAndSeller(@Param("seller") User seller);
 }

@@ -173,7 +173,7 @@ const ProductCard = ({ product, onClick, showSeller = true, showEditButton = fal
   };
 
   return (
-    <div className={`product-card ${isOutOfStock ? 'out-of-stock' : ''}`} onClick={handleCardClick}>
+    <div className={`product-card ${isOutOfStock ? 'out-of-stock' : ''} ${showEditButton ? 'edit-mode' : ''}`} onClick={handleCardClick}>
       {/* Badges */}
       <div className="product-badges">
         {isNew && <span className="badge badge-new">NEW</span>}
