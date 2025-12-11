@@ -3,6 +3,7 @@ package com.ecommerce.WildMartV1.citccs.controller;
 import com.ecommerce.WildMartV1.citccs.dto.OrderDTO;
 import com.ecommerce.WildMartV1.citccs.dto.OrderItemDTO;
 import com.ecommerce.WildMartV1.citccs.dto.ProductDTO;
+import com.ecommerce.WildMartV1.citccs.dto.ReviewDTO;
 import com.ecommerce.WildMartV1.citccs.dto.UserDTO;
 import com.ecommerce.WildMartV1.citccs.model.Cart;
 import com.ecommerce.WildMartV1.citccs.model.CartItem;
@@ -10,11 +11,13 @@ import com.ecommerce.WildMartV1.citccs.model.Category;
 import com.ecommerce.WildMartV1.citccs.model.Order;
 import com.ecommerce.WildMartV1.citccs.model.OrderItem;
 import com.ecommerce.WildMartV1.citccs.model.Product;
+import com.ecommerce.WildMartV1.citccs.model.Review;
 import com.ecommerce.WildMartV1.citccs.model.User;
 import com.ecommerce.WildMartV1.citccs.model.Voucher;
 import com.ecommerce.WildMartV1.citccs.repository.CartRepository;
 import com.ecommerce.WildMartV1.citccs.repository.OrderRepository;
 import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
+import com.ecommerce.WildMartV1.citccs.repository.ReviewRepository;
 import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
 import com.ecommerce.WildMartV1.citccs.repository.VoucherRepository;
 import com.ecommerce.WildMartV1.citccs.config.JwtService;
@@ -49,6 +52,7 @@ public class OrderController {
     private OrderRepository orderRepository;
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
+    private final ReviewRepository reviewRepository;
     private final UserService userService;
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -756,6 +760,144 @@ public class OrderController {
             log.error("Error updating sale status", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to update order status: " + e.getMessage()));
+        }
+    }
+
+    // Method to submit a review for a product
+    @PostMapping("/user/orders/{orderId}/reviews")
+    public ResponseEntity<?> submitReview(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Integer orderId,
+            @RequestBody Map<String, Object> reviewData) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            User user = userService.getUserById(userId);
+
+            // Find the order
+            Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+
+            // Verify that the order belongs to the user (buyer)
+            if (!order.getBuyer().getUserId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized access to this order"));
+            }
+
+            // Check if order is delivered
+            if (!"Delivered".equals(order.getOrderStatus())) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Can only review products from delivered orders"));
+            }
+
+            // Get product ID and rating from request
+            Integer productId = (Integer) reviewData.get("productId");
+            Integer rating = (Integer) reviewData.get("rating");
+            String reviewText = (String) reviewData.get("reviewText");
+
+            // Validate inputs
+            if (productId == null || rating == null || rating < 1 || rating > 5) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid rating. Rating must be between 1 and 5."));
+            }
+
+            // Find the product
+            Product product = productRepository.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            // Check if user has already reviewed this product in this order
+            Optional<Review> existingReview = reviewRepository.findByUserAndProduct(user, product);
+            if (existingReview.isPresent()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "You have already reviewed this product"));
+            }
+
+            // Create new review
+            Review review = new Review();
+            review.setProduct(product);
+            review.setUser(user);
+            review.setRating(rating);
+            review.setReviewText(reviewText);
+
+            // Save review
+            review = reviewRepository.save(review);
+
+            // Update product average rating
+            Double averageRating = reviewRepository.getAverageRatingByProduct(product);
+            product.setAverageRating(averageRating);
+            productRepository.save(product);
+
+            // Convert to DTO
+            ReviewDTO reviewDTO = new ReviewDTO(
+                    review.getId(),
+                    product.getProductId(),
+                    product.getProductName(),
+                    user.getUserId(),
+                    user.getFullName() != null ? user.getFullName() : user.getUsername(),
+                    review.getRating(),
+                    review.getReviewText(),
+                    review.getCreatedAt()
+            );
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Review submitted successfully",
+                    "review", reviewDTO));
+        } catch (Exception e) {
+            log.error("Error submitting review", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to submit review: " + e.getMessage()));
+        }
+    }
+
+    // Method to get reviews for an order
+    @GetMapping("/user/orders/{orderId}/reviews")
+    public ResponseEntity<?> getOrderReviews(
+            @RequestHeader("Authorization") String token,
+            @PathVariable Integer orderId) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            User user = userService.getUserById(userId);
+
+            // Find the order
+            Order order = orderRepository.findByIdWithBuyerAndItems(orderId)
+                    .orElseThrow(() -> new RuntimeException("Order not found"));
+
+            // Verify that the order belongs to the user (buyer)
+            if (!order.getBuyer().getUserId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized access to this order"));
+            }
+
+            // Get all products in the order
+            List<Product> products = order.getItems().stream()
+                    .map(OrderItem::getProduct)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            // Get reviews for all products by this user
+            List<ReviewDTO> reviewDTOs = new ArrayList<>();
+            for (Product product : products) {
+                Optional<Review> reviewOpt = reviewRepository.findByUserAndProduct(user, product);
+                if (reviewOpt.isPresent()) {
+                    Review review = reviewOpt.get();
+                    ReviewDTO reviewDTO = new ReviewDTO(
+                            review.getId(),
+                            product.getProductId(),
+                            product.getProductName(),
+                            user.getUserId(),
+                            user.getFullName() != null ? user.getFullName() : user.getUsername(),
+                            review.getRating(),
+                            review.getReviewText(),
+                            review.getCreatedAt()
+                    );
+                    reviewDTOs.add(reviewDTO);
+                }
+            }
+
+            return ResponseEntity.ok(reviewDTOs);
+        } catch (Exception e) {
+            log.error("Error fetching order reviews", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch reviews: " + e.getMessage()));
         }
     }
 }
