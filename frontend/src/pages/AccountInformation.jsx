@@ -25,6 +25,13 @@ const AccountInformation = () => {
   const [userRole, setUserRole] = useState('BUYER');
   const [loading, setLoading] = useState(false);
   
+  // Add logout function
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+  
   // Cropper states
   const [showCropper, setShowCropper] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
@@ -33,6 +40,26 @@ const AccountInformation = () => {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [uploading, setUploading] = useState(false);
 
+  // Effect to sync profileImage state with accountData when accountData changes
+  useEffect(() => {
+    if (accountData.profileImage && accountData.profileImage !== profileImage) {
+      setProfileImage(accountData.profileImage);
+    }
+  }, [accountData.profileImage, profileImage]);
+  
+  // Effect to ensure profileImage state is updated when activeTab changes
+  useEffect(() => {
+    if (accountData.profileImage && accountData.profileImage !== profileImage) {
+      setProfileImage(accountData.profileImage);
+    }
+    
+    // Refresh account info when switching to account information tab
+    if (activeTab === 'accountInformation') {
+      fetchAccountInfo();
+    }
+  }, [activeTab, accountData.profileImage, profileImage]);
+  
+  // Effect to fetch account info on component mount
   useEffect(() => {
     fetchAccountInfo();
   }, []);
@@ -42,21 +69,33 @@ const AccountInformation = () => {
       const response = await axios.get('http://localhost:8080/api/user/account', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      // Map backend fields to frontend state
+      // Extract profile image URL
+      const profileImageUrl = response.data.profileImage || '';
+      
+      // Map backend fields to frontend state - ensure both states are synced
       setAccountData({
         ...response.data,
         phone: response.data.phoneNumber || '',
         address: response.data.shippingAddress || '',
-        profileImage: response.data.profileImage || '',
+        profileImage: profileImageUrl,
       });
-      if (response.data.profileImage) {
-        setProfileImage(response.data.profileImage);
-      }
+      
+      // Sync the profileImage state as well
+      setProfileImage(profileImageUrl);
+      
       // Get user role from localStorage
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       setUserRole(storedUser.role || 'BUYER');
     } catch (error) {
       console.error('Error fetching account info:', error);
+      if (error.response?.status === 403) {
+        toast.error('Session expired. Please log in again.');
+        setTimeout(() => {
+          handleLogout();
+        }, 3000);
+      } else {
+        toast.error('Failed to load account information. Please try again.');
+      }
     }
   };
 
@@ -156,21 +195,34 @@ const AccountInformation = () => {
 
       const imageUrl = urlData.publicUrl;
       
-      // Update local state
+      // Update both local states synchronously
       setProfileImage(imageUrl);
       setAccountData(prev => ({ ...prev, profileImage: imageUrl }));
       
-      // Immediately save to backend
+      // Immediately save to backend with all account data
       const token = localStorage.getItem('token');
+      const updatePayload = {
+        username: accountData.username,
+        email: accountData.email,
+        phoneNumber: accountData.phone,
+        shippingAddress: accountData.address,
+        profileImage: imageUrl, // Include the new profile image
+      };
+      
       await axios.put('http://localhost:8080/api/user/account', 
-        { profileImage: imageUrl },
+        updatePayload,
         { headers: { Authorization: `Bearer ${token}` }}
       );
       
+      toast.success('Profile picture updated successfully!');
       setShowCropper(false);
       setImageToCrop(null);
+      
+      // Refresh account info to ensure consistency
+      await fetchAccountInfo();
     } catch (error) {
       console.error('Error uploading image:', error);
+      toast.error('Failed to upload profile image. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -543,7 +595,12 @@ const AccountInformation = () => {
               🚀 BECOME A SELLER
             </button>
           )}
-          <button className="sidebar-button logout-button">LOGOUT</button>
+          <button 
+            className="sidebar-button logout-button"
+            onClick={handleLogout}
+          >
+            LOGOUT
+          </button>
         </div>
         <div className="main-content">
           {renderContent()}
