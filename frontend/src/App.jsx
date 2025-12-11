@@ -14,8 +14,8 @@ import MyPurchases from './pages/MyPurchases';
 import MyLikes from './pages/MyLikes';
 import MyOrders from './pages/MyOrders';
 
-import OrderDetails from './pages/OrderDetails';
 import SalesOrderDetails from './pages/SalesOrderDetails';
+import './styles/RedesignedOrderDetails.css';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Conversations from './pages/Conversations';
@@ -117,10 +117,7 @@ function App() {
             path="/sales-order-details/:orderId" 
             element={isAuthenticated ? <SalesOrderDetails /> : <Navigate to="/login" />} 
           />
-          <Route 
-            path="/order-details/:orderId" 
-            element={isAuthenticated ? <OrderDetails /> : <Navigate to="/login" />} 
-          />
+
           <Route 
             path="/cart" 
             element={isAuthenticated ? <Cart /> : <Navigate to="/login" />} 
