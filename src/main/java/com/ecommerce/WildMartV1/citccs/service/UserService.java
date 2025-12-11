@@ -10,9 +10,11 @@ import com.ecommerce.WildMartV1.citccs.repository.ProductRepository;
 import com.ecommerce.WildMartV1.citccs.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,6 +28,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final LikeRepository likeRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public User getUserById(Integer userId) {
         return userRepository.findById(userId)
@@ -74,6 +77,25 @@ public class UserService {
         }
 
         user = userRepository.save(user);
+        return convertToDTO(user);
+    }
+    
+    // Add changeUserPassword method
+    public void changeUserPassword(Integer userId, String newPassword) {
+        User user = getUserById(userId);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        log.info("Password changed successfully for user: {}", userId);
+    }
+    
+    // Add becomeSeller method
+    public UserDTO becomeSeller(Integer userId) {
+        User user = getUserById(userId);
+        user.setRole(User.Role.SELLER);
+        user.setUpdatedAt(LocalDateTime.now());
+        user = userRepository.save(user);
+        log.info("User {} became a seller", userId);
         return convertToDTO(user);
     }
 

@@ -57,6 +57,57 @@ public class UserController {
         return ResponseEntity.ok(products);
     }
 
+    // Add the missing account endpoints
+    @GetMapping("/account")
+    public ResponseEntity<UserDTO> getAccountInfo(@RequestHeader("Authorization") String token) {
+        Integer userId = extractUserIdFromToken(token);
+        UserDTO user = userService.getUserProfile(userId);
+        return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/account")
+    public ResponseEntity<UserDTO> updateAccountInfo(
+            @RequestHeader("Authorization") String token,
+            @RequestBody UserDTO userDTO) {
+        Integer userId = extractUserIdFromToken(token);
+        UserDTO updatedUser = userService.updateUserProfile(userId, userDTO);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    // Add change password endpoint
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @RequestHeader("Authorization") String token,
+            @RequestBody Map<String, String> request) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            String newPassword = request.get("newPassword");
+            
+            if (newPassword == null || newPassword.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "New password is required"));
+            }
+            
+            userService.changeUserPassword(userId, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+        } catch (Exception e) {
+            log.error("Error changing password", e);
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to change password: " + e.getMessage()));
+        }
+    }
+
+    // Add become-seller endpoint
+    @PostMapping("/become-seller")
+    public ResponseEntity<?> becomeSeller(@RequestHeader("Authorization") String token) {
+        try {
+            Integer userId = extractUserIdFromToken(token);
+            UserDTO updatedUser = userService.becomeSeller(userId);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            log.error("Error becoming seller", e);
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to become seller: " + e.getMessage()));
+        }
+    }
+
     // Updated endpoint for paginated liked products
     @GetMapping("/likes")
     public ResponseEntity<Map<String, Object>> getLikedProducts(
