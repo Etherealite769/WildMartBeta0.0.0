@@ -1,5 +1,6 @@
 import React from 'react';
 import logo from '../assets/logo_wildmart.png';
+import landingBg from '../assets/landing_pic.jpg';
 import { useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaBook, FaLaptop } from 'react-icons/fa';
 import '../styles/LandingPage.css';
@@ -13,19 +14,22 @@ const LandingPage = () => {
         <img src={logo} alt="WildMart Logo" className="brand-name" style={{ height: '50px' }} />
         <nav>
           <button className="btn-secondary" onClick={() => navigate('/login')}>Login</button>
-          <button className="btn-primary" onClick={() => navigate('/signup')}>Sign Up</button>
+          <button className="btn-primary" onClick={() => navigate('/signup')}>Signup</button>
         </nav>
       </header>
 
       <main className="landing-main">
-        <section className="hero-section">
+        <section className="hero-section" style={{ backgroundImage: `url(${landingBg})` }}>
+          <div className="hero-overlay"></div>
           <div className="hero-content">
             <h2 className="hero-title">Your Campus Marketplace</h2>
             <p className="hero-subtitle">Buy, sell, and discover amazing deals right here at your university.</p>
             <button className="btn-primary-large" onClick={() => navigate('/signup')}>Get Started</button>
           </div>
           <div className="hero-visual">
-            <img src={logo} alt="WildMart Logo" style={{ width: '80%', height: 'auto' }} />
+            <div className="logo-circle-outline">
+              <img src={logo} alt="WildMart Logo" />
+            </div>
           </div>
         </section>
 

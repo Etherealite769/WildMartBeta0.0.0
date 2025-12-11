@@ -15,19 +15,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 50px;
-  background-color: var(--background-color);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  position: fixed; /* Make the header fixed */
-  top: 0; /* Position it at the top */
-  width: 100%; /* Make it span the full width */
-  z-index: 1000; /* Ensure it stays on top of other content */
+  padding: 15px 50px;
+  background-color: var(--primary-color);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
 }
 
 .landing-header .brand-name {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--primary-color);
+  height: 45px;
+  width: 45px;
+  border-radius: 50%;
+  border: 2px solid var(--secondary-color);
+  padding: 3px;
+  background: transparent;
 }
 
 .landing-header nav {
@@ -36,8 +39,9 @@
 }
 
 .landing-header nav button {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
+  padding: 8px 16px;
 }
 
 .hero-section {
@@ -46,7 +50,32 @@
   justify-content: center;
   padding: 80px 50px;
   background-color: #F8F9F9;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   text-align: center;
+  position: relative;
+  min-height: 400px;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 249, 249, 0.88) 50%, rgba(255, 255, 255, 0.85) 100%);
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-visual {
+  position: relative;
+  z-index: 2;
 }
 
 .hero-content .hero-title {
@@ -113,20 +142,23 @@
 /* Button Styles */
 .btn-primary, .btn-primary-large, .btn-secondary {
   padding: 10px 20px;
-  border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
   font-weight: 600;
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
-  color: var(--background-color);
+  background-color: transparent;
+  color: white;
+  border: 2px solid white !important;
+  padding: 8px 18px;
+  font-size: 13px;
 }
 
 .btn-primary:hover {
-  background-color: #6a0000; /* A darker shade of primary color */
+  background-color: white;
+  color: var(--primary-color);
 }
 
 .btn-primary-large {
@@ -134,6 +166,7 @@
   font-size: 18px;
   background-color: var(--primary-color);
   color: var(--background-color);
+  border: none;
 }
 
 .btn-primary-large:hover {
@@ -142,26 +175,49 @@
 
 .btn-secondary {
   background-color: transparent;
-  color: var(--primary-color);
-  border: 2px solid var(--primary-color);
+  color: white;
+  border: 2px solid white !important;
+  padding: 8px 18px;
+  font-size: 13px;
 }
 
 .btn-secondary:hover {
-  background-color: var(--primary-color);
-  color: var(--background-color);
+  background-color: white;
+  color: var(--primary-color);
 }
 
 /* Hero Section Visual */
 .hero-visual {
-  width: 400px;
-  height: 300px;
-  background-color: var(--secondary-color); /* Using secondary color for a visual block */
-  border-radius: 10px;
   margin-left: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  color: var(--primary-color);
-  font-weight: bold;
+}
+
+/* Logo Circle Outline Style */
+.logo-circle-outline {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 3px solid var(--secondary-color);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(139, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.logo-circle-outline:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 40px rgba(139, 0, 0, 0.2);
+}
+
+.logo-circle-outline img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
 }
