@@ -295,13 +295,13 @@ public class OrderController {
                 // Update product stock
                 int newQuantity = product.getQuantityAvailable() - cartItem.getQuantity();
                 product.setQuantityAvailable(newQuantity);
-                
+
                 // If stock becomes 0, automatically set status to "sold"
                 if (newQuantity <= 0) {
                     product.setStatus("sold");
                     log.info("Product {} is now out of stock, status changed to 'sold'", product.getProductId());
                 }
-                
+
                 productRepository.save(product);
             }
 
@@ -531,8 +531,9 @@ public class OrderController {
                 User seller = product.getSeller();
                 if (seller != null) {
                     productDTO.setSellerEmail(seller.getEmail());
-                    productDTO.setSellerName(seller.getFullName() != null ? seller.getFullName() : seller.getUsername());
-                    
+                    productDTO
+                            .setSellerName(seller.getFullName() != null ? seller.getFullName() : seller.getUsername());
+
                     // Add nested seller object for messaging
                     Map<String, Object> sellerMap = new HashMap<>();
                     sellerMap.put("userId", seller.getUserId());
@@ -595,13 +596,13 @@ public class OrderController {
                 Product product = item.getProduct();
                 int restoredQuantity = product.getQuantityAvailable() + item.getQuantity();
                 product.setQuantityAvailable(restoredQuantity);
-                
+
                 // If stock is restored and product was "sold", change back to "active"
                 if (restoredQuantity > 0 && "sold".equalsIgnoreCase(product.getStatus())) {
                     product.setStatus("active");
                     log.info("Product {} stock restored, status changed to 'active'", product.getProductId());
                 }
-                
+
                 productRepository.save(product);
             }
 
@@ -655,7 +656,8 @@ public class OrderController {
                 order.setDeliveryConfirmationImage(deliveryConfirmationImage);
             }
 
-            // Now that order is delivered (fulfilled), check if products should be marked as "sold"
+            // Now that order is delivered (fulfilled), check if products should be marked
+            // as "sold"
             for (OrderItem item : order.getItems()) {
                 Product product = item.getProduct();
                 // If stock is 0 or less after this fulfilled order, mark as "sold"
@@ -705,14 +707,45 @@ public class OrderController {
             }
 
             String newStatus = statusUpdate.get("orderStatus");
-            
+
             // Validate status transitions
             String currentStatus = order.getOrderStatus();
             List<String> validStatuses = List.of("Pending", "Processing", "Shipped", "Delivered", "Cancelled");
-            
+
             if (!validStatuses.contains(newStatus)) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Invalid status: " + newStatus));
+            }
+
+            // Enforce proper status transitions according to requirements
+            boolean isValidTransition = true;
+            switch (currentStatus) {
+                case "Pending":
+                    // From Pending, can only go to Processing
+                    isValidTransition = "Processing".equals(newStatus) || "Cancelled".equals(newStatus);
+                    break;
+                case "Processing":
+                    // From Processing, can go to Shipped or back to Pending
+                    isValidTransition = "Shipped".equals(newStatus) || "Pending".equals(newStatus)
+                            || "Cancelled".equals(newStatus);
+                    break;
+                case "Shipped":
+                    // From Shipped, can go to Delivered or back to Processing
+                    isValidTransition = "Delivered".equals(newStatus) || "Processing".equals(newStatus);
+                    break;
+                case "Delivered":
+                    // From Delivered, cannot change status
+                    isValidTransition = false;
+                    break;
+                case "Cancelled":
+                    // From Cancelled, cannot change status
+                    isValidTransition = false;
+                    break;
+            }
+
+            if (!isValidTransition) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid status transition from " + currentStatus + " to " + newStatus));
             }
 
             // If setting to Delivered, also handle product status
@@ -722,23 +755,24 @@ public class OrderController {
                     if (product.getQuantityAvailable() <= 0) {
                         product.setStatus("sold");
                         productRepository.save(product);
-                        log.info("Product {} is sold out after delivery, status changed to 'sold'", product.getProductId());
+                        log.info("Product {} is sold out after delivery, status changed to 'sold'",
+                                product.getProductId());
                     }
                 }
             }
-            
+
             // If cancelling, restore stock
             if ("Cancelled".equals(newStatus) && !"Cancelled".equals(currentStatus)) {
                 for (OrderItem item : order.getItems()) {
                     Product product = item.getProduct();
                     int restoredQuantity = product.getQuantityAvailable() + item.getQuantity();
                     product.setQuantityAvailable(restoredQuantity);
-                    
+
                     if (restoredQuantity > 0 && "sold".equalsIgnoreCase(product.getStatus())) {
                         product.setStatus("active");
                         log.info("Product {} stock restored, status changed to 'active'", product.getProductId());
                     }
-                    
+
                     productRepository.save(product);
                 }
             }
@@ -835,8 +869,7 @@ public class OrderController {
                     user.getFullName() != null ? user.getFullName() : user.getUsername(),
                     review.getRating(),
                     review.getReviewText(),
-                    review.getCreatedAt()
-            );
+                    review.getCreatedAt());
 
             return ResponseEntity.ok(Map.of(
                     "message", "Review submitted successfully",
@@ -887,8 +920,7 @@ public class OrderController {
                             user.getFullName() != null ? user.getFullName() : user.getUsername(),
                             review.getRating(),
                             review.getReviewText(),
-                            review.getCreatedAt()
-                    );
+                            review.getCreatedAt());
                     reviewDTOs.add(reviewDTO);
                 }
             }

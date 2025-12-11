@@ -115,7 +115,7 @@ const MyProducts = () => {
     setUpdatingStatus(orderId);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
+      const response = await axios.put(
         `http://localhost:8080/api/user/sales/${orderId}/update-status`,
         { orderStatus: newStatus },
         { headers: { Authorization: `Bearer ${token}` }}
@@ -126,7 +126,11 @@ const MyProducts = () => {
       ));
     } catch (error) {
       console.error('Error updating order status:', error);
-      alert('Failed to update order status');
+      if (error.response && error.response.data && error.response.data.error) {
+        alert('Failed to update order status: ' + error.response.data.error);
+      } else {
+        alert('Failed to update order status');
+      }
     } finally {
       setUpdatingStatus(null);
     }
@@ -363,10 +367,10 @@ const MyProducts = () => {
                           onChange={(e) => handleUpdateOrderStatus(sale.orderId, e.target.value)}
                           disabled={updatingStatus === sale.orderId}
                         >
-                          <option value="Pending">Pending</option>
-                          <option value="Processing">Processing</option>
-                          <option value="Shipped">Shipped</option>
-                          <option value="Delivered">Delivered</option>
+                          <option value="Pending" disabled={sale.orderStatus !== 'Pending'}>Pending</option>
+                          <option value="Processing" disabled={sale.orderStatus === 'Shipped' || sale.orderStatus === 'Delivered'}>Processing</option>
+                          <option value="Shipped" disabled={sale.orderStatus === 'Delivered'}>Shipped</option>
+                          <option value="Delivered" disabled={sale.orderStatus !== 'Shipped'}>Delivered</option>
                         </select>
                       </div>
                       
