@@ -162,7 +162,7 @@ const MyProducts = () => {
             className={`filter-btn ${filter === 'sold' ? 'active' : ''}`}
             onClick={() => setFilter('sold')}
           >
-            Sold ({sales.length})
+            Sold ({products.filter(p => p.status === 'sold').length})
           </button>
           <button 
             className={`filter-btn ${filter === 'draft' ? 'active' : ''}`}
@@ -172,70 +172,27 @@ const MyProducts = () => {
           </button>
         </div>
 
-        {filter !== 'sold' ? (
-          <div className="products-grid-my-products">
-            {filteredProducts.length === 0 ? (
-              <div className="empty-state">
-                <p>No products found.</p>
+        <div className="products-grid-my-products">
+          {filteredProducts.length === 0 ? (
+            <div className="empty-state">
+              <p>No products found.</p>
+            </div>
+          ) : (
+            filteredProducts.map(product => (
+              <div key={product.productId} className="product-card-wrapper">
+                <ProductCard 
+                  product={product} 
+                  onClick={() => setSelectedProduct(product)}
+                  showSeller={false}
+                  showEditButton={true}
+                />
+                <span className={`product-status ${getStatusClass(product.status)}`}>
+                  {product.status ? product.status.charAt(0).toUpperCase() + product.status.slice(1) : 'Draft'}
+                </span>
               </div>
-            ) : (
-              filteredProducts.map(product => (
-                <div key={product.productId} className="product-card-wrapper">
-                  <ProductCard 
-                    product={product} 
-                    onClick={() => setSelectedProduct(product)}
-                    showSeller={false}
-                    showEditButton={true}
-                  />
-                  <span className={`product-status ${getStatusClass(product.status)}`}>
-                    {product.status ? product.status.charAt(0).toUpperCase() + product.status.slice(1) : 'Draft'}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
-          // Display sales when 'sold' filter is active
-          <div className="orders-list">
-            {filteredSales.length > 0 ? (
-              filteredSales.map(sale => (
-                  <div className="order-main" onClick={() => setSelectedSale(sale)}>
-                    <div className="order-number-col">
-                      <span className="order-number">{sale.orderNumber || `#${sale.orderId}`}</span>
-                    </div>
-                    <div className="order-date-col">
-                      <span className="label">Date:</span>
-                      <span>{new Date(sale.orderDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className="order-items-count-col">
-                      <span className="label">Items:</span>
-                      <span>{sale.items?.length || 0}</span>
-                    </div>
-                    <div className="order-total-col">
-                      <span className="label">Total:</span>
-                      <span className="amount">₱{Number(sale.totalAmount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="order-status-col">
-                      <span className={`status-badge ${sale.orderStatus?.toLowerCase()}`}>
-                        {sale.orderStatus}
-                      </span>
-                    </div>
-                  </div>
-              ))
-            ) : (
-              <div className="empty-state">
-                <div className="empty-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="8" width="18" height="12" rx="2" ry="2"></rect>
-                    <path d="M3 8l9-5 9 5"></path>
-                    <line x1="12" y1="3" x2="12" y2="8"></line>
-                  </svg>
-                </div>
-                <p>No sales yet</p>
-              </div>
-            )}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
 
       {/* Product Details Modal */}

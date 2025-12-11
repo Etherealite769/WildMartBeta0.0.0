@@ -39,7 +39,22 @@
   opacity: 0.5;
   filter: grayscale(40%);
   cursor: not-allowed;
+}
+
+/* Only disable pointer events when NOT in edit mode */
+.product-card.out-of-stock:not(.edit-mode) {
   pointer-events: none;
+}
+
+/* Allow edit mode cards to be interactive */
+.product-card.out-of-stock.edit-mode {
+  cursor: pointer;
+}
+
+.product-card.out-of-stock.edit-mode .edit-product-btn {
+  opacity: 1;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .product-card.out-of-stock:hover {

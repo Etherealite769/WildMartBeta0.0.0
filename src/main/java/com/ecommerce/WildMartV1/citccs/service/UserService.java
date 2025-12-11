@@ -79,7 +79,8 @@ public class UserService {
     public List<Product> getUserProducts(Integer userId) {
         log.info("Attempting to retrieve products for userId: {}", userId);
         User user = getUserById(userId);
-        List<Product> products = productRepository.findBySeller(user);
+        // Use query that eagerly fetches category and seller to avoid lazy loading issues
+        List<Product> products = productRepository.findBySellerWithCategoryAndSeller(user);
         log.info("Found {} products for user: {}", products.size(), userId);
         return products;
     }
