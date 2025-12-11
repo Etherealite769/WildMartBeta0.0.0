@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -13,6 +13,7 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [localLikeCount, setLocalLikeCount] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -23,40 +24,13 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
     onConfirm: null,
     type: 'default'
   });
+  // Cache for product data to avoid refetching
+  const [productCache, setProductCache] = useState({});
+  // Skeleton loader state
+  const [showSkeleton, setShowSkeleton] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && productId) {
-      // Reset only the data-related states when opening modal
-      setLocalLikeCount(0);
-      setImageLoaded(false);
-      setQuantity(1);
-      
-      // Fetch data immediately - these will update the states asynchronously
-      const loadData = async () => {
-        // Check like status first for immediate visual feedback
-        await checkIfLiked();
-        // Then fetch other data
-        fetchProduct();
-        fetchCurrentUser();
-      };
-      
-      loadData();
-    }
-  }, [productId, isOpen]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  const fetchCurrentUser = async () => {
+  // Memoized functions to fix useEffect dependencies
+  const fetchCurrentUser = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
@@ -68,9 +42,9 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
     } catch (error) {
       console.error('Error fetching current user:', error);
     }
-  };
+  }, []);
 
-  const checkIfLiked = async () => {
+  const checkIfLiked = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       console.log('[ProductDetailsModal] Checking like status for product:', productId);
@@ -103,9 +77,9 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
       console.error('[ProductDetailsModal] Error checking like status:', error);
       setIsLiked(false);
     }
-  };
+  }, [productId]);
 
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`http://localhost:8080/api/products/${productId}`, {
@@ -113,10 +87,65 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
       });
       setProduct(response.data);
       setLocalLikeCount(response.data.likeCount || 0);
+      // Cache the product data
+      setProductCache(prev => ({
+        ...prev,
+        [productId]: response.data
+      }));
     } catch (error) {
       console.error('Error fetching product:', error);
     }
-  };
+  }, [productId]);
+
+  // Handle skeleton loader visibility
+  useEffect(() => {
+    if (!product && isOpen) {
+      // Small delay to prevent flickering
+      const timer = setTimeout(() => {
+        if (!product) {
+          setShowSkeleton(true);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      setShowSkeleton(false);
+    }
+  }, [product, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && productId) {
+      // Reset only the data-related states when opening modal
+      setQuantity(1);
+      
+      // Fetch data immediately - these will update the states asynchronously
+      const loadData = async () => {
+        // Check if we have cached product data
+        if (productCache[productId]) {
+          setProduct(productCache[productId]);
+          setLocalLikeCount(productCache[productId].likeCount || 0);
+          // Still check like status for current user and fetch user data in parallel
+          Promise.all([checkIfLiked(), fetchCurrentUser()]);
+        } else {
+          // Fetch all data in parallel for better performance
+          Promise.all([checkIfLiked(), fetchProduct(), fetchCurrentUser()]);
+        }
+      };
+      
+      loadData();
+    }
+  }, [productId, isOpen, productCache, checkIfLiked, fetchProduct, fetchCurrentUser]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const handleAddToCartClick = () => {
     const token = localStorage.getItem('token');
@@ -156,11 +185,6 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
   const handleLike = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Please login to like products');
-        return;
-      }
-      
       const prodId = product?.productId || productId;
       
       if (isLiked) {
@@ -227,7 +251,8 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  if (!product) {
+  // Show skeleton loader while fetching or when we have cached data but still loading
+  if (showSkeleton) {
     return (
       <div className="modal-overlay-blur" onClick={onClose}>
         <div className="product-details-modal" onClick={(e) => e.stopPropagation()}>
@@ -237,15 +262,31 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>Loading product details...</p>
+          <div className="product-details-container">
+            {/* Skeleton loader */}
+            <div className="product-images-section">
+              <div className="main-image skeleton-loader"></div>
+              <div className="product-stats">
+                <div className="stat-item skeleton-loader" style={{width: '100px', height: '20px'}}></div>
+              </div>
+            </div>
+            <div className="product-info">
+              <div className="skeleton-loader" style={{width: '150px', height: '24px', marginBottom: '10px'}}></div>
+              <div className="skeleton-loader" style={{width: '300px', height: '36px', marginBottom: '15px'}}></div>
+              <div className="skeleton-loader" style={{width: '100px', height: '20px', marginBottom: '20px'}}></div>
+              <div className="skeleton-loader" style={{width: '120px', height: '30px', marginBottom: '25px'}}></div>
+              <div className="skeleton-loader" style={{width: '200px', height: '20px', marginBottom: '30px'}}></div>
+              <div className="skeleton-loader" style={{width: '100%', height: '100px', marginBottom: '25px'}}></div>
+              <div className="skeleton-loader" style={{width: '150px', height: '40px', marginBottom: '25px'}}></div>
+              <div className="skeleton-loader" style={{width: '100%', height: '80px'}}></div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  // Safely extract product details with proper null checks
   const productName = product?.productName || product?.name || 'Product';
   const productPrice = product?.price || 0;
   const productDescription = product?.description || 'No description available';
@@ -275,32 +316,31 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
             <div className="product-images-section">
               <div className="product-images">
                 <div className="main-image">
-                  {!imageLoaded && (
+                  {imageError ? (
                     <div className="image-placeholder-detail">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                         <circle cx="8.5" cy="8.5" r="1.5"></circle>
                         <polyline points="21 15 16 10 5 21"></polyline>
                       </svg>
+                      <span>Image not available</span>
                     </div>
-                  )}
-                  {productImage ? (
+                  ) : !imageLoaded && productImage ? (
+                    <div className="image-placeholder-detail">
+                      <div className="skeleton-loader" style={{width: '100%', height: '100%'}}></div>
+                    </div>
+                  ) : null}
+                  {productImage && !imageError && (
                     <img 
                       src={productImage} 
                       alt={productName}
                       className={imageLoaded ? 'loaded' : ''}
                       onLoad={() => setImageLoaded(true)}
-                      onError={() => setImageLoaded(true)}
+                      onError={() => {
+                        setImageError(true);
+                        setImageLoaded(true);
+                      }}
                     />
-                  ) : (
-                    <div className="image-placeholder-detail">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                      </svg>
-                      <span>No Image Available</span>
-                    </div>
                   )}
                 </div>
               </div>
@@ -471,8 +511,8 @@ const ProductDetailsModal = ({ productId, isOpen, onClose }) => {
                   </div>
                 </div>
                 
-                {/* Owner Actions */}
-                {product.seller?.userId === currentUser?.userId && (
+                {/* Owner Actions - Only show if product and currentUser exist and match */}
+                {product && currentUser && product.seller?.userId === currentUser.userId && (
                   <div className="product-owner-actions">
                     <button 
                       className="btn-edit-product"
