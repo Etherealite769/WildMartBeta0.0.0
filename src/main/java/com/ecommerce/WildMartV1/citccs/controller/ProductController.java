@@ -79,6 +79,7 @@ public class ProductController {
                         product.getSeller().getFullName() != null ? product.getSeller().getFullName()
                                 : product.getSeller().getUsername());
                 productMap.put("sellerEmail", product.getSeller().getEmail());
+                productMap.put("sellerId", product.getSeller().getUserId()); // Add sellerId for dashboard filtering
             }
             return productMap;
         }).collect(Collectors.toList());
