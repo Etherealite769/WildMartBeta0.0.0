@@ -356,7 +356,7 @@ public class ProductController {
         if (image != null && !image.isEmpty()) {
             try {
                 String baseUrl = env.getProperty("supabase.public.url");
-                String bucketName = "product-images";
+                String bucketName = "wildmart_pic";
                 String fileName = image.getOriginalFilename();
                 String imageUrl = String.format("%s/storage/v1/object/public/%s/%s", baseUrl, bucketName, fileName);
                 product.setImageUrl(imageUrl);

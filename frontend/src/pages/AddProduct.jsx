@@ -176,9 +176,9 @@ const AddProduct = () => {
         const fileName = `${uuidv4()}-${imageFile.name}`;
         const filePath = `${fileName}`; // Simplified path - no subfolder
 
-        // Upload image to Supabase storage bucket "product-images"
+        // Upload image to Supabase storage bucket "wildmart_pic"
         const { data, error } = await supabase.storage
-          .from('product-images')
+          .from('wildmart_pic')
           .upload(filePath, imageFile, {
             cacheControl: '3600',
             upsert: true, // Allow overwriting if needed
@@ -192,7 +192,7 @@ const AddProduct = () => {
 
         // Get the public URL of the uploaded image
         const { data: publicUrlData } = supabase.storage
-          .from('product-images')
+          .from('wildmart_pic')
           .getPublicUrl(filePath);
 
         imageUrl = publicUrlData.publicUrl;
