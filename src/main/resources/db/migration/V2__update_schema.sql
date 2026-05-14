@@ -48,7 +48,6 @@ ALTER TABLE orders ALTER COLUMN order_id TYPE INTEGER;
 ALTER TABLE orders DROP CONSTRAINT IF EXISTS fk_orders_seller; -- Drop old FK to seller
 ALTER TABLE orders DROP COLUMN IF EXISTS seller_id; -- Remove seller_id column
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_id INTEGER;
-ALTER TABLE orders ADD CONSTRAINT fk_orders_discount FOREIGN KEY (discount_id) REFERENCES vouchers (discount_id);
 ALTER TABLE orders ALTER COLUMN shipping_address TYPE VARCHAR(255);
 
 -- Update Carts table

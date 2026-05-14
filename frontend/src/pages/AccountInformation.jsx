@@ -199,7 +199,7 @@ const AccountInformation = () => {
       
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
-        .from('Profile Image')
+        .from('wildmart_pic')
         .upload(fileName, croppedBlob, {
           contentType: 'image/jpeg',
           upsert: true
@@ -212,7 +212,7 @@ const AccountInformation = () => {
 
       // Get public URL with timestamp to prevent caching issues
       const { data: urlData } = supabase.storage
-        .from('Profile Image')
+        .from('wildmart_pic')
         .getPublicUrl(fileName);
 
       // HTTP URLs should have timestamp, but data URLs should not

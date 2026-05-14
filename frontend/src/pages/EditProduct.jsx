@@ -275,9 +275,9 @@ const EditProduct = () => {
         const fileName = `${uuidv4()}-${imageFile.name}`;
         const filePath = `${fileName}`;
 
-        // Upload image to Supabase storage bucket "product-images"
+        // Upload image to Supabase storage bucket "wildmart_pic"
         const { data, error } = await supabase.storage
-          .from('product-images')
+          .from('wildmart_pic')
           .upload(filePath, imageFile, {
             cacheControl: '3600',
             upsert: true,
@@ -291,7 +291,7 @@ const EditProduct = () => {
 
         // Get the public URL of the uploaded image
         const { data: publicUrlData } = supabase.storage
-          .from('product-images')
+          .from('wildmart_pic')
           .getPublicUrl(filePath);
 
         imageUrl = publicUrlData.publicUrl;

@@ -120,7 +120,7 @@ const EditProfile = () => {
       
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
-        .from('Profile Image')
+        .from('wildmart_pic')
         .upload(fileName, croppedBlob, {
           contentType: 'image/jpeg',
           upsert: true
@@ -133,7 +133,7 @@ const EditProfile = () => {
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('Profile Image')
+        .from('wildmart_pic')
         .getPublicUrl(fileName);
 
       const imageUrl = urlData.publicUrl;
